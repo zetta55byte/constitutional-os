@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/constitutional-os)](https://pypi.org/project/constitutional-os/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
-[![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.19045723.svg)](https://zenodo.org/records/19045723)
+[![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.19045723.svg)](https://zenodo.org/records/19075163)
 
 ---
 
