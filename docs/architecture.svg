@@ -1,0 +1,75 @@
+<svg width="680" height="520" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <style>
+    .arr { stroke: #888780; stroke-width: 1.5; fill: none; }
+    .th  { font-family: sans-serif; font-size: 14px; font-weight: 500; fill: #3C3489; }
+    .ts  { font-family: sans-serif; font-size: 12px; font-weight: 400; fill: #534AB7; }
+    .th-teal  { font-family: sans-serif; font-size: 14px; font-weight: 500; fill: #085041; }
+    .th-coral { font-family: sans-serif; font-size: 14px; font-weight: 500; fill: #712B13; }
+    .th-blue  { font-family: sans-serif; font-size: 14px; font-weight: 500; fill: #0C447C; }
+    .ts-blue  { font-family: sans-serif; font-size: 12px; font-weight: 400; fill: #185FA5; }
+    .th-gray  { font-family: sans-serif; font-size: 14px; font-weight: 500; fill: #444441; }
+    .ts-label { font-family: sans-serif; font-size: 12px; font-weight: 400; fill: #5F5E5A; }
+  </style>
+</defs>
+
+<!-- Agent -->
+<rect x="250" y="30" width="180" height="48" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text class="th" x="340" y="54" text-anchor="middle" dominant-baseline="central">Agent</text>
+
+<!-- Arrow: Agent → Proposed Action -->
+<line x1="340" y1="78" x2="340" y2="118" class="arr" marker-end="url(#arrow)"/>
+
+<!-- Proposed Action -->
+<rect x="230" y="118" width="220" height="44" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th-gray" x="340" y="140" text-anchor="middle" dominant-baseline="central">Proposed action</text>
+
+<!-- Arrow: Proposed Action → Governance Check -->
+<line x1="340" y1="162" x2="340" y2="202" class="arr" marker-end="url(#arrow)"/>
+
+<!-- Governance Check box -->
+<rect x="150" y="202" width="380" height="100" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text class="th-blue" x="340" y="228" text-anchor="middle" dominant-baseline="central">Governance check</text>
+<text class="ts-blue" x="230" y="262" text-anchor="middle" dominant-baseline="central">M1 Safety</text>
+<text class="ts-blue" x="340" y="262" text-anchor="middle" dominant-baseline="central">M2 Reversibility</text>
+<text class="ts-blue" x="230" y="284" text-anchor="middle" dominant-baseline="central">M3 Pluralism</text>
+<text class="ts-blue" x="340" y="284" text-anchor="middle" dominant-baseline="central">M4 Human primacy</text>
+
+<!-- Arrows to Allow / Deny -->
+<line x1="260" y1="302" x2="160" y2="360" class="arr" marker-end="url(#arrow)"/>
+<line x1="420" y1="302" x2="520" y2="360" class="arr" marker-end="url(#arrow)"/>
+<text class="ts-label" x="188" y="344" text-anchor="middle">allow</text>
+<text class="ts-label" x="492" y="344" text-anchor="middle">deny</text>
+
+<!-- Allow box -->
+<rect x="80" y="360" width="160" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text class="th-teal" x="160" y="382" text-anchor="middle" dominant-baseline="central">Allow</text>
+
+<!-- Deny box -->
+<rect x="440" y="360" width="160" height="44" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th-coral" x="520" y="382" text-anchor="middle" dominant-baseline="central">Deny</text>
+
+<!-- Arrow from Allow → Execute Tool -->
+<line x1="160" y1="404" x2="160" y2="444" class="arr" marker-end="url(#arrow)"/>
+
+<!-- Arrow from Deny → Reversible Delta -->
+<line x1="520" y1="404" x2="520" y2="444" class="arr" marker-end="url(#arrow)"/>
+
+<!-- Execute Tool -->
+<rect x="80" y="444" width="160" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text class="th-teal" x="160" y="466" text-anchor="middle" dominant-baseline="central">Execute tool</text>
+
+<!-- Reversible Delta -->
+<rect x="440" y="444" width="160" height="44" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th-coral" x="520" y="466" text-anchor="middle" dominant-baseline="central">Reversible delta</text>
+
+<!-- Continuity Chain -->
+<line x1="160" y1="488" x2="240" y2="510" class="arr" marker-end="url(#arrow)"/>
+<line x1="520" y1="488" x2="440" y2="510" class="arr" marker-end="url(#arrow)"/>
+<rect x="220" y="488" width="240" height="44" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th-gray" x="340" y="510" text-anchor="middle" dominant-baseline="central">Continuity chain</text>
+
+</svg>
