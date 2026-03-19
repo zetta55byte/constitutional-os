@@ -2,6 +2,8 @@
 
 ![Architecture](docs/architecture.svg)
 
+**[→ Open Governance Playground](https://zetta55byte.github.io/constitutional-os/docs/playground.html)**
+
 **A formal runtime for epistemic-governance systems.**
 
 [![PyPI](https://img.shields.io/pypi/v/constitutional-os)](https://pypi.org/project/constitutional-os/)
