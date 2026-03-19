@@ -2,7 +2,7 @@
 
 ![Architecture](docs/architecture.svg)
 
-**[→ Open Governance Playground](https://zetta55byte.github.io/constitutional-os/docs/playground.html)**
+**[→ Open Governance Playground](https://zetta55byte.github.io/constitutional-os/playground.html)**
 
 **A formal runtime for epistemic-governance systems.**
 
