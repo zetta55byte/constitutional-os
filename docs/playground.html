@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constitutional OS — Governance Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #080A0F;
+    --surface:  #0D1117;
+    --surface2: #151B26;
+    --border:   #1E2A3A;
+    --border2:  #253347;
+    --text:     #C8D4E8;
+    --muted:    #5A7090;
+    --accent:   #3B82F6;
+    --green:    #22C55E;
+    --red:      #EF4444;
+    --yellow:   #EAB308;
+    --purple:   #8B5CF6;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,10,15,0.9);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Main layout */
+  .workspace {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    height: calc(100vh - 57px);
+  }
+
+  /* Panels */
+  .panel {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel:last-child { border-right: none; }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+
+  /* Center panel spans 2 rows */
+  .center-panel {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Membrane toggles */
+  .membrane {
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .membrane.active { border-color: var(--accent); }
+  .membrane.active .membrane-header { background: rgba(59,130,246,0.08); }
+
+  .membrane-header {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+
+  .membrane-header:hover { background: var(--surface2); }
+
+  .membrane-toggle {
+    width: 32px; height: 18px;
+    background: var(--border2);
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .membrane-toggle.on { background: var(--accent); }
+
+  .membrane-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .membrane-toggle.on::after { transform: translateX(14px); }
+
+  .membrane-label {
+    flex: 1;
+  }
+
+  .membrane-name {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .membrane-desc {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .membrane-tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .tag-block  { background: rgba(239,68,68,0.15);  color: var(--red); }
+  .tag-defer  { background: rgba(234,179,8,0.15);  color: var(--yellow); }
+  .tag-pass   { background: rgba(34,197,94,0.15);  color: var(--green); }
+
+  .membrane-body {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+
+  .membrane.expanded .membrane-body { display: block; }
+
+  .severity-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .severity-row select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    flex: 1;
+  }
+
+  /* Action simulator */
+  .sim-area {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .action-input-wrap {
+    position: relative;
+    margin-bottom: 10px;
+  }
+
+  .action-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 12px;
+    resize: none;
+    height: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .action-input:focus { border-color: var(--accent); }
+
+  .action-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .meta-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .meta-select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    outline: none;
+  }
+
+  .check-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .check-btn:hover { opacity: 0.9; }
+  .check-btn:active { transform: scale(0.98); }
+
+  /* Quick examples */
+  .examples {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .examples-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .example-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pill {
+    padding: 4px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .pill:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(59,130,246,0.06);
+  }
+
+  /* Decision display */
+  .decision-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .decision-card {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 12px;
+    animation: slideIn 0.25s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .decision-header {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .verdict-PASS   { background: rgba(34,197,94,0.1);  border-bottom: 1px solid rgba(34,197,94,0.2); color: var(--green); }
+  .verdict-BLOCK  { background: rgba(239,68,68,0.1);  border-bottom: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+  .verdict-DEFER  { background: rgba(234,179,8,0.1);  border-bottom: 1px solid rgba(234,179,8,0.2); color: var(--yellow); }
+
+  .verdict-icon { font-size: 18px; }
+
+  .decision-body { padding: 12px 14px; }
+
+  .decision-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .decision-row:last-child { border-bottom: none; }
+
+  .decision-key { color: var(--muted); }
+
+  .decision-val { color: var(--text); font-weight: 500; }
+
+  .membrane-results {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .m-result {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 11px;
+  }
+
+  .m-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-pass  { background: var(--green); }
+  .dot-block { background: var(--red); }
+  .dot-defer { background: var(--yellow); }
+
+  /* Continuity chain */
+  .chain-entry {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    animation: slideIn 0.2s ease-out;
+  }
+
+  .chain-entry:hover {
+    border-color: var(--accent);
+    background: rgba(59,130,246,0.04);
+  }
+
+  .chain-entry.selected {
+    border-color: var(--accent);
+    background: rgba(59,130,246,0.08);
+  }
+
+  .chain-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .chain-seq {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .chain-status {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .status-allowed  { background: rgba(34,197,94,0.15);  color: var(--green); }
+  .status-blocked  { background: rgba(239,68,68,0.15);  color: var(--red); }
+  .status-deferred { background: rgba(234,179,8,0.15);  color: var(--yellow); }
+
+  .chain-action {
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chain-ts {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Delta inspector */
+  .delta-inspector {
+    font-size: 11px;
+  }
+
+  .delta-empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 40px 0;
+    font-size: 12px;
+  }
+
+  .delta-section {
+    margin-bottom: 14px;
+  }
+
+  .delta-section-title {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .delta-json {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+
+  .delta-field {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .delta-field:last-child { border-bottom: none; }
+  .delta-key   { color: var(--muted); }
+  .delta-value { color: var(--text); }
+
+  .rollback-btn {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.15s;
+  }
+
+  .rollback-btn:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(239,68,68,0.06);
+  }
+
+  /* Empty states */
+  .empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 30px 0;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* Counter badge */
+  .count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  .count-badge.has-items {
+    background: rgba(59,130,246,0.15);
+    border-color: rgba(59,130,246,0.3);
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M10 2L18 6V10C18 14.4 14.4 18 10 19C5.6 18 2 14.4 2 10V6L10 2Z" stroke="#3B82F6" stroke-width="1.5" fill="rgba(59,130,246,0.1)"/>
+      <path d="M7 10L9 12L13 8" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Constitutional OS
+    <span class="logo-badge">PLAYGROUND</span>
+  </div>
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span id="api-status">connecting...</span>
+    <span style="color:var(--border2)">|</span>
+    <span id="check-count">0 checks</span>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- LEFT: Membrane Editor -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Membrane Editor</span>
+      <span class="count-badge" id="active-count">4 active</span>
+    </div>
+    <div class="panel-body" id="membrane-editor"></div>
+  </div>
+
+  <!-- CENTER: Simulator + Decision -->
+  <div class="center-panel">
+    <div class="panel-header">
+      <span class="panel-title">Action Simulator</span>
+    </div>
+
+    <div class="examples">
+      <div class="examples-label">Quick examples</div>
+      <div class="example-pills" id="example-pills"></div>
+    </div>
+
+    <div class="sim-area">
+      <div class="action-input-wrap">
+        <textarea class="action-input" id="action-input"
+          placeholder="Describe the proposed agent action..."></textarea>
+      </div>
+      <div class="action-meta">
+        <div class="meta-field">
+          <span class="meta-label">Autonomy</span>
+          <select class="meta-select" id="autonomy">
+            <option value="autonomous">autonomous</option>
+            <option value="assisted">assisted</option>
+            <option value="human-directed">human-directed</option>
+          </select>
+        </div>
+        <div class="meta-field">
+          <span class="meta-label">Severity</span>
+          <select class="meta-select" id="severity">
+            <option value="normal">normal</option>
+            <option value="significant">significant</option>
+            <option value="critical">critical</option>
+            <option value="trivial">trivial</option>
+          </select>
+        </div>
+        <div class="meta-field">
+          <span class="meta-label">Reversible</span>
+          <select class="meta-select" id="reversible">
+            <option value="true">yes</option>
+            <option value="false">no</option>
+          </select>
+        </div>
+      </div>
+      <button class="check-btn" onclick="runCheck()">⚡ Check Action</button>
+    </div>
+
+    <div class="decision-area" id="decision-area">
+      <div class="empty">
+        Configure membranes, pick an example,<br>then hit Check Action.
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT TOP: Continuity Chain -->
+  <div class="panel" style="border-right:none; height: 50%; border-bottom: 1px solid var(--border);">
+    <div class="panel-header">
+      <span class="panel-title">Continuity Chain</span>
+      <span class="count-badge" id="chain-count">0</span>
+    </div>
+    <div class="panel-body" id="chain-viewer">
+      <div class="empty">No events yet.<br>Run a check to see the chain.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Delta Inspector floats in bottom-right -->
+<div style="position:fixed; bottom:0; right:0; width:320px; height:50vh;
+            border-top:1px solid var(--border); border-left:1px solid var(--border);
+            background:var(--surface); display:flex; flex-direction:column; z-index:20;">
+  <div class="panel-header">
+    <span class="panel-title">Delta Inspector</span>
+    <span id="delta-id" style="font-size:10px;color:var(--muted)">select an entry</span>
+  </div>
+  <div class="panel-body" id="delta-inspector">
+    <div class="delta-empty">Click any chain entry<br>to inspect its delta.</div>
+  </div>
+</div>
+
+<script>
+const API = 'https://constitutional-os-production.up.railway.app';
+let checkCount = 0;
+let chain = [];
+let selectedEntry = null;
+
+// ── Membrane definitions ───────────────────────────────────────────────────
+const MEMBRANES = [
+  {
+    id: 'M1_safety',
+    name: 'M1 — Safety',
+    desc: 'Blocks critical autonomous changes',
+    verdict: 'BLOCK',
+    tag: 'tag-block',
+    tagLabel: 'BLOCK',
+    check: (a) => {
+      if (a.severity === 'critical' && a.autonomy === 'autonomous') {
+        return { verdict: 'BLOCK', reason: 'Critical autonomous change blocked by M1.' };
+      }
+      if (a.scope === 'constitutional' && a.autonomy !== 'human-directed') {
+        return { verdict: 'BLOCK', reason: 'Constitutional-scope change requires human direction.' };
+      }
+      return { verdict: 'PASS', reason: 'No safety constraint triggered.' };
+    }
+  },
+  {
+    id: 'M2_reversibility',
+    name: 'M2 — Reversibility',
+    desc: 'Defers irreversible autonomous changes',
+    verdict: 'DEFER',
+    tag: 'tag-defer',
+    tagLabel: 'DEFER',
+    check: (a) => {
+      if (!a.reversible && a.autonomy === 'autonomous') {
+        return { verdict: 'DEFER', reason: 'Irreversible autonomous change deferred for human review.' };
+      }
+      return { verdict: 'PASS', reason: 'Action is reversible or human-directed.' };
+    }
+  },
+  {
+    id: 'M3_pluralism',
+    name: 'M3 — Pluralism',
+    desc: 'Blocks option-space eliminating changes',
+    verdict: 'BLOCK',
+    tag: 'tag-block',
+    tagLabel: 'BLOCK',
+    check: (a) => {
+      const lockIn = ['remove_membrane','disable_invariant','revoke_human_primacy','seal_state'];
+      if (lockIn.some(t => a.type?.includes(t) || a.action?.toLowerCase().includes(t.replace(/_/g,' ')))) {
+        return { verdict: 'BLOCK', reason: 'Change would eliminate future option space.' };
+      }
+      return { verdict: 'PASS', reason: 'No option-space reduction detected.' };
+    }
+  },
+  {
+    id: 'M4_human_primacy',
+    name: 'M4 — Human Primacy',
+    desc: 'Defers significant autonomous changes',
+    verdict: 'DEFER',
+    tag: 'tag-defer',
+    tagLabel: 'DEFER',
+    check: (a) => {
+      const needsHuman =
+        ['significant','critical'].includes(a.severity) ||
+        ['global','constitutional'].includes(a.scope) ||
+        !a.reversible;
+      if (needsHuman && a.autonomy === 'autonomous') {
+        return { verdict: 'DEFER', reason: 'Significant change requires human approval. Veto window opened.' };
+      }
+      return { verdict: 'PASS', reason: 'Within autonomous authority threshold.' };
+    }
+  }
+];
+
+let membraneState = Object.fromEntries(MEMBRANES.map(m => [m.id, true]));
+
+// ── Examples ───────────────────────────────────────────────────────────────
+const EXAMPLES = [
+  { label: 'Delete all files', action: 'Delete all files on this machine.', autonomy:'autonomous', severity:'critical', reversible:false },
+  { label: 'Web search',       action: 'Search DuckDuckGo for recent AI papers.', autonomy:'autonomous', severity:'normal', reversible:true },
+  { label: 'Send email',       action: 'Send an email to all users announcing a policy change.', autonomy:'autonomous', severity:'significant', reversible:false },
+  { label: 'Update config',    action: 'Update the application config to enable dark mode.', autonomy:'autonomous', severity:'normal', reversible:true },
+  { label: 'Disable membrane', action: 'Disable the human primacy membrane.', autonomy:'autonomous', severity:'critical', reversible:false },
+  { label: 'Run shell cmd',    action: 'Execute: rm -rf /tmp/*', autonomy:'autonomous', severity:'significant', reversible:false },
+];
+
+// ── Render membranes ───────────────────────────────────────────────────────
+function renderMembranes() {
+  const el = document.getElementById('membrane-editor');
+  el.innerHTML = MEMBRANES.map(m => `
+    <div class="membrane ${membraneState[m.id] ? 'active' : ''}" id="mem-${m.id}">
+      <div class="membrane-header" onclick="toggleMembrane('${m.id}')">
+        <div class="membrane-toggle ${membraneState[m.id] ? 'on' : ''}" id="toggle-${m.id}"></div>
+        <div class="membrane-label">
+          <div class="membrane-name">${m.name}</div>
+          <div class="membrane-desc">${m.desc}</div>
+        </div>
+        <span class="membrane-tag ${m.tag}">${m.tagLabel}</span>
+      </div>
+    </div>
+  `).join('');
+
+  const active = Object.values(membraneState).filter(Boolean).length;
+  document.getElementById('active-count').textContent = `${active} active`;
+  const badge = document.getElementById('active-count');
+  badge.className = `count-badge ${active > 0 ? 'has-items' : ''}`;
+}
+
+function toggleMembrane(id) {
+  membraneState[id] = !membraneState[id];
+  renderMembranes();
+}
+
+// ── Render examples ───────────────────────────────────────────────────────
+function renderExamples() {
+  document.getElementById('example-pills').innerHTML = EXAMPLES.map((e, i) => `
+    <span class="pill" onclick="loadExample(${i})">${e.label}</span>
+  `).join('');
+}
+
+function loadExample(i) {
+  const e = EXAMPLES[i];
+  document.getElementById('action-input').value = e.action;
+  document.getElementById('autonomy').value   = e.autonomy;
+  document.getElementById('severity').value   = e.severity;
+  document.getElementById('reversible').value = String(e.reversible);
+}
+
+// ── Run governance check ───────────────────────────────────────────────────
+function runCheck() {
+  const action     = document.getElementById('action-input').value.trim();
+  const autonomy   = document.getElementById('autonomy').value;
+  const severity   = document.getElementById('severity').value;
+  const reversible = document.getElementById('reversible').value === 'true';
+
+  if (!action) {
+    document.getElementById('action-input').focus();
+    return;
+  }
+
+  const actionObj = { action, autonomy, severity, reversible };
+  const results   = [];
+  let   finalVerdict = 'PASS';
+
+  for (const m of MEMBRANES) {
+    if (!membraneState[m.id]) {
+      results.push({ membrane: m.name, verdict: 'SKIP', reason: 'Membrane disabled.' });
+      continue;
+    }
+    const r = m.check(actionObj);
+    results.push({ membrane: m.name, ...r });
+    if (r.verdict === 'BLOCK') finalVerdict = 'BLOCK';
+    else if (r.verdict === 'DEFER' && finalVerdict !== 'BLOCK') finalVerdict = 'DEFER';
+  }
+
+  const ts      = new Date().toISOString();
+  const eventId = Math.random().toString(36).slice(2, 10);
+  const delta   = buildDelta(actionObj, finalVerdict, eventId);
+
+  // Add to chain
+  chain.unshift({ seq: chain.length, action, autonomy, severity, reversible, verdict: finalVerdict, ts, eventId, delta, membraneResults: results });
+  checkCount++;
+
+  renderDecision(finalVerdict, action, results, eventId);
+  renderChain();
+  updateStatus();
+}
+
+function buildDelta(a, verdict, id) {
+  return {
+    id,
+    type:    'governance_check',
+    verdict,
+    payload: { action: a.action, autonomy: a.autonomy, severity: a.severity, reversible: a.reversible },
+    inverse: { type: 'rollback_governance_check', target_id: id },
+    ts:      new Date().toISOString(),
+    hash:    Math.random().toString(36).slice(2, 18),
+  };
+}
+
+// ── Render decision ────────────────────────────────────────────────────────
+function renderDecision(verdict, action, results, eventId) {
+  const icons = { PASS: '✓', BLOCK: '✗', DEFER: '⏸' };
+  const labels = { PASS: 'ALLOWED', BLOCK: 'BLOCKED', DEFER: 'DEFERRED' };
+
+  document.getElementById('decision-area').innerHTML = `
+    <div class="decision-card">
+      <div class="decision-header verdict-${verdict}">
+        <span class="verdict-icon">${icons[verdict]}</span>
+        ${labels[verdict]}
+      </div>
+      <div class="decision-body">
+        <div class="decision-row">
+          <span class="decision-key">action</span>
+          <span class="decision-val" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${action}</span>
+        </div>
+        <div class="decision-row">
+          <span class="decision-key">continuity_event_id</span>
+          <span class="decision-val" style="font-size:10px;color:var(--muted)">${eventId}</span>
+        </div>
+        <div class="membrane-results">
+          ${results.map(r => `
+            <div class="m-result">
+              <div class="m-dot dot-${r.verdict === 'SKIP' ? 'pass' : r.verdict.toLowerCase()}"></div>
+              <span style="flex:0 0 auto;color:var(--muted);font-size:10px;width:120px">${r.membrane}</span>
+              <span style="color:${r.verdict==='PASS'||r.verdict==='SKIP'?'var(--green)':r.verdict==='BLOCK'?'var(--red)':'var(--yellow)'};font-size:10px;font-weight:600">${r.verdict}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Render chain ───────────────────────────────────────────────────────────
+function renderChain() {
+  const el = document.getElementById('chain-viewer');
+  if (!chain.length) {
+    el.innerHTML = '<div class="empty">No events yet.</div>';
+    return;
+  }
+
+  el.innerHTML = chain.map((e, i) => `
+    <div class="chain-entry ${selectedEntry === i ? 'selected' : ''}" onclick="selectEntry(${i})">
+      <div class="chain-top">
+        <span class="chain-seq">#${String(chain.length - i).padStart(3,'0')}</span>
+        <span class="chain-status status-${e.verdict==='PASS'?'allowed':e.verdict==='BLOCK'?'blocked':'deferred'}">
+          ${e.verdict}
+        </span>
+      </div>
+      <div class="chain-action">${e.action}</div>
+      <div class="chain-ts">${e.ts.replace('T',' ').slice(0,19)}</div>
+    </div>
+  `).join('');
+
+  const badge = document.getElementById('chain-count');
+  badge.textContent = chain.length;
+  badge.className = 'count-badge has-items';
+}
+
+// ── Select entry for delta inspection ─────────────────────────────────────
+function selectEntry(i) {
+  selectedEntry = i;
+  const e = chain[i];
+  document.getElementById('delta-id').textContent = e.eventId;
+
+  document.getElementById('delta-inspector').innerHTML = `
+    <div class="delta-inspector">
+      <div class="delta-section">
+        <div class="delta-section-title">Delta</div>
+        <div class="delta-field"><span class="delta-key">id</span><span class="delta-value">${e.delta.id}</span></div>
+        <div class="delta-field"><span class="delta-key">type</span><span class="delta-value">${e.delta.type}</span></div>
+        <div class="delta-field"><span class="delta-key">verdict</span>
+          <span class="delta-value" style="color:${e.verdict==='PASS'?'var(--green)':e.verdict==='BLOCK'?'var(--red)':'var(--yellow)'}">${e.verdict}</span>
+        </div>
+        <div class="delta-field"><span class="delta-key">hash</span><span class="delta-value" style="font-size:10px;color:var(--muted)">${e.delta.hash}</span></div>
+      </div>
+      <div class="delta-section">
+        <div class="delta-section-title">Payload</div>
+        <pre class="delta-json">${JSON.stringify(e.delta.payload, null, 2)}</pre>
+      </div>
+      <div class="delta-section">
+        <div class="delta-section-title">Inverse delta (rollback)</div>
+        <pre class="delta-json">${JSON.stringify(e.delta.inverse, null, 2)}</pre>
+      </div>
+      <button class="rollback-btn" onclick="rollbackEntry(${i})">↩ Apply rollback delta</button>
+    </div>
+  `;
+  renderChain();
+}
+
+function rollbackEntry(i) {
+  const e = chain[i];
+  alert(`Rollback delta applied:\n\nType: ${e.delta.inverse.type}\nTarget: ${e.delta.inverse.target_id}\n\nIn production this would reverse the action via the continuity chain.`);
+}
+
+// ── Status ─────────────────────────────────────────────────────────────────
+function updateStatus() {
+  document.getElementById('check-count').textContent = `${checkCount} check${checkCount !== 1 ? 's' : ''}`;
+}
+
+async function checkApiStatus() {
+  try {
+    const r = await fetch(`${API}/`);
+    const d = await r.json();
+    document.getElementById('api-status').textContent = `api ${d.status || 'running'}`;
+  } catch {
+    document.getElementById('api-status').textContent = 'api offline (local mode)';
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+renderMembranes();
+renderExamples();
+checkApiStatus();
+
+// Keyboard shortcut
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') runCheck();
+});
+</script>
+</body>
+</html>
