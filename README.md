@@ -1,5 +1,7 @@
 # constitutional-os
 
+![Architecture](docs/architecture.svg)
+
 **A formal runtime for epistemic-governance systems.**
 
 [![PyPI](https://img.shields.io/pypi/v/constitutional-os)](https://pypi.org/project/constitutional-os/)
