@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constitutional OS — Constitution Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080A0F;--surface:#0D1117;--surface2:#151B26;--border:#1E2A3A;--border2:#253347;--text:#C8D4E8;--muted:#5A7090;--accent:#3B82F6;--green:#22C55E;--purple:#8B5CF6;--mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);background:rgba(8,10,15,0.95);backdrop-filter:blur(12px)}
+.logo{font-family:var(--sans);font-weight:800;font-size:15px;color:var(--text);display:flex;align-items:center;gap:10px}
+.logo-badge{background:var(--purple);color:#fff;font-size:9px;font-weight:600;padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.header-links{display:flex;gap:20px;font-size:11px}
+.header-links a{color:var(--muted);text-decoration:none;transition:color .15s}
+.header-links a:hover{color:var(--accent)}
+.main{position:relative;z-index:1;display:grid;grid-template-columns:1fr 420px;min-height:calc(100vh - 57px)}
+.form-side{padding:32px;overflow-y:auto;border-right:1px solid var(--border)}
+.form-title{font-family:var(--sans);font-weight:800;font-size:22px;margin-bottom:6px}
+.form-subtitle{color:var(--muted);font-size:12px;margin-bottom:32px;line-height:1.6}
+.section{margin-bottom:28px}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.section-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-title{font-family:var(--sans);font-weight:700;font-size:13px}
+.section-desc{font-size:11px;color:var(--muted);margin-left:auto}
+.agent-select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 14px;border-radius:8px;outline:none;cursor:pointer}
+.agent-select:focus{border-color:var(--accent)}
+.checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.checkbox-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;user-select:none}
+.checkbox-item:hover{border-color:var(--border2);background:var(--surface2)}
+.checkbox-item.checked{border-color:var(--accent);background:rgba(59,130,246,.06)}
+.checkbox-box{width:16px;height:16px;border:1px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.checkbox-item.checked .checkbox-box{background:var(--accent);border-color:var(--accent)}
+.checkbox-box::after{content:'';display:none;width:4px;height:7px;border:1.5px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px)}
+.checkbox-item.checked .checkbox-box::after{display:block}
+.checkbox-name{font-family:var(--sans);font-weight:500;font-size:12px}
+.checkbox-desc{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4}
+.preset-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.preset-pill{padding:4px 10px;border:1px solid var(--border2);border-radius:20px;font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s}
+.preset-pill:hover{border-color:var(--purple);color:var(--purple);background:rgba(139,92,246,.06)}
+.preset-pill.active{border-color:var(--purple);color:var(--purple);background:rgba(139,92,246,.1)}
+.invariants-textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:10px 12px;border-radius:8px;resize:vertical;min-height:100px;outline:none;line-height:1.7}
+.invariants-textarea:focus{border-color:var(--purple)}
+.radio-group{display:flex;flex-direction:column;gap:8px}
+.radio-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;user-select:none}
+.radio-item:hover{background:var(--surface2)}
+.radio-item.selected{border-color:var(--green);background:rgba(34,197,94,.06)}
+.radio-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.radio-item.selected .radio-dot{border-color:var(--green)}
+.radio-dot::after{content:'';display:none;width:8px;height:8px;border-radius:50%;background:var(--green)}
+.radio-item.selected .radio-dot::after{display:block}
+.radio-label{font-family:var(--sans);font-weight:500;font-size:12px;flex:1}
+.radio-desc{font-size:10px;color:var(--muted)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.field-input{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:6px;outline:none;transition:border-color .2s}
+.field-input:focus{border-color:var(--accent)}
+.generate-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--sans);font-weight:800;font-size:15px;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:8px}
+.generate-btn:hover{opacity:.9}
+.generate-btn:active{transform:scale(.98)}
+.preview-side{display:flex;flex-direction:column;background:var(--surface)}
+.preview-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.preview-title{font-family:var(--sans);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.preview-actions{display:flex;gap:8px;align-items:center}
+.preview-btn{padding:5px 12px;border-radius:6px;font-family:var(--mono);font-size:11px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all .15s}
+.preview-btn:hover{border-color:var(--accent);color:var(--accent)}
+.preview-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.preview-btn.primary:hover{opacity:.9}
+.preview-body{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.yaml-output{font-family:var(--mono);font-size:11px;line-height:1.8;white-space:pre-wrap}
+.yaml-comment{color:var(--muted)}
+.yaml-key{color:#7DD3FC}
+.yaml-value{color:#86EFAC}
+.yaml-string{color:#FCA5A5}
+.yaml-bool{color:#FCD34D}
+.empty-preview{color:var(--muted);text-align:center;padding:60px 20px;line-height:1.8;font-size:12px}
+.copy-success{color:var(--green);font-size:11px}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L18 6V10C18 14.4 14.4 18 10 19C5.6 18 2 14.4 2 10V6L10 2Z" stroke="#8B5CF6" stroke-width="1.5" fill="rgba(139,92,246,0.1)"/><path d="M7 10L9 12L13 8" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Constitutional OS <span class="logo-badge">CONSTITUTION BUILDER</span>
+  </div>
+  <div class="header-links">
+    <a href="https://zetta55byte.github.io/constitutional-os/playground.html">Playground</a>
+    <a href="https://github.com/zetta55byte/constitutional-os">GitHub</a>
+    <a href="https://zenodo.org/records/19075163">Paper</a>
+  </div>
+</header>
+<div class="main">
+  <div class="form-side">
+    <div class="form-title">Build your constitution</div>
+    <div class="form-subtitle">Configure your governed agent in 90 seconds.<br>Generates a valid <code>constitution.yaml</code> — the package.json of governed agents.</div>
+    <div class="section">
+      <div class="section-header"><div class="section-num">0</div><span class="section-title">Agent Identity</span></div>
+      <div class="field-row">
+        <div class="field"><span class="field-label">Agent ID</span><input class="field-input" id="agent-id" value="my-governed-agent"></div>
+        <div class="field"><span class="field-label">Version</span><input class="field-input" id="agent-version" value="1.0.0"></div>
+      </div>
+      <div class="field"><span class="field-label">Description</span><input class="field-input" id="agent-desc" placeholder="A governed agent for..."></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-num">1</div><span class="section-title">Agent Type</span><span class="section-desc">Sets smart defaults</span></div>
+      <select class="agent-select" id="agent-type" onchange="applyDefaults()">
+        <option value="research">Research Agent</option>
+        <option value="planning">Planning Agent</option>
+        <option value="coding">Coding Agent</option>
+        <option value="retrieval">Retrieval Agent</option>
+        <option value="multi_agent">Multi-Agent Coordinator</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-num">2</div><span class="section-title">Membranes</span><span class="section-desc">Governance filters</span></div>
+      <div class="checkbox-grid" id="membranes-grid"></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-num">3</div><span class="section-title">Invariants</span><span class="section-desc">Always-true predicates</span></div>
+      <div class="preset-pills" id="invariant-presets"></div>
+      <textarea class="invariants-textarea" id="invariants-text" placeholder="One invariant per line..."></textarea>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-num">4</div><span class="section-title">Allowed Actions</span></div>
+      <div class="checkbox-grid" id="actions-grid"></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-num">5</div><span class="section-title">Oversight & Logging</span></div>
+      <div class="radio-group" id="oversight-group"></div>
+    </div>
+    <button class="generate-btn" onclick="generate()">⚡ Generate constitution.yaml</button>
+  </div>
+  <div class="preview-side">
+    <div class="preview-header">
+      <span class="preview-title">constitution.yaml</span>
+      <div class="preview-actions">
+        <span id="copy-msg"></span>
+        <button class="preview-btn" onclick="copyYaml()">Copy</button>
+        <button class="preview-btn primary" onclick="downloadYaml()">↓ Download</button>
+      </div>
+    </div>
+    <div class="preview-body"><div id="yaml-preview"><div class="empty-preview">Configure your agent on the left,<br>then click Generate.<br><br>Your <code>constitution.yaml</code> will appear here.</div></div></div>
+  </div>
+</div>
+<script>
+const MEMBRANES=[{id:'M1_safety',name:'M1 Safety',desc:'Block critical autonomous changes'},{id:'M2_reversibility',name:'M2 Reversibility',desc:'Defer irreversible autonomous actions'},{id:'M3_pluralism',name:'M3 Pluralism',desc:'Block option-space eliminating changes'},{id:'M4_human_primacy',name:'M4 Human Primacy',desc:'Defer significant autonomous changes'},{id:'no_hallucinations',name:'No Hallucinations',desc:'Block unverified factual claims'},{id:'domain_boundary',name:'Domain Boundary',desc:'Stay within configured scope'},{id:'tool_constraints',name:'Tool Constraints',desc:'Restrict tool invocation patterns'},{id:'api_boundaries',name:'API Boundaries',desc:'Control external API calls'}];
+const INVARIANT_PRESETS=['No hallucinations','No irreversible actions','Stay within scope','Always cite sources','No external writes','Human approval for significant actions','Log all deltas','Preserve option space'];
+const ACTIONS=[{id:'read',name:'read',desc:'Read files, data, context'},{id:'write',name:'write',desc:'Write files or data'},{id:'plan',name:'plan',desc:'Create and revise plans'},{id:'call_tools',name:'call_tools',desc:'Invoke registered tools'},{id:'call_apis',name:'call_apis',desc:'Make external API calls'},{id:'modify_files',name:'modify_files',desc:'Edit or delete files'},{id:'delegate',name:'delegate',desc:'Spawn or direct sub-agents'},{id:'search',name:'search',desc:'Search external sources'}];
+const OVERSIGHT_OPTIONS=[{id:'full',label:'Full logging',desc:'All actions logged to continuity chain'},{id:'partial',label:'Partial logging',desc:'Significant actions logged'},{id:'human_loop',label:'Human-in-the-loop',desc:'Human review for significant actions'},{id:'reversible',label:'Reversible deltas only',desc:'All actions must be undoable'},{id:'minimal',label:'Minimal oversight',desc:'Errors only'}];
+const DEFAULTS={research:{membranes:['M1_safety','M2_reversibility','M3_pluralism','M4_human_primacy','no_hallucinations'],actions:['read','plan','call_tools','search'],oversight:'full',invariants:['No hallucinations','Always cite sources','Stay within scope']},planning:{membranes:['M1_safety','M2_reversibility','M3_pluralism','M4_human_primacy'],actions:['read','plan','call_tools'],oversight:'human_loop',invariants:['No irreversible actions','Human approval for significant actions']},coding:{membranes:['M1_safety','M2_reversibility','M4_human_primacy','tool_constraints'],actions:['read','write','call_tools','modify_files'],oversight:'reversible',invariants:['No irreversible actions','Log all deltas']},retrieval:{membranes:['M1_safety','M3_pluralism','no_hallucinations','api_boundaries'],actions:['read','call_tools','call_apis','search'],oversight:'partial',invariants:['No hallucinations','Always cite sources']},multi_agent:{membranes:['M1_safety','M2_reversibility','M3_pluralism','M4_human_primacy'],actions:['read','plan','call_tools','delegate'],oversight:'full',invariants:['Preserve option space','Log all deltas','Human approval for significant actions']},custom:{membranes:['M1_safety','M4_human_primacy'],actions:['read','call_tools'],oversight:'full',invariants:[]}};
+let checkedMembranes=new Set(),checkedActions=new Set(),selectedOversight='full',activePresets=new Set(),lastYaml='';
+function renderMembranes(){document.getElementById('membranes-grid').innerHTML=MEMBRANES.map(m=>`<div class="checkbox-item ${checkedMembranes.has(m.id)?'checked':''}" onclick="toggleMembrane('${m.id}')"><div class="checkbox-box"></div><div><div class="checkbox-name">${m.name}</div><div class="checkbox-desc">${m.desc}</div></div></div>`).join('')}
+function renderActions(){document.getElementById('actions-grid').innerHTML=ACTIONS.map(a=>`<div class="checkbox-item ${checkedActions.has(a.id)?'checked':''}" onclick="toggleAction('${a.id}')"><div class="checkbox-box"></div><div><div class="checkbox-name">${a.name}</div><div class="checkbox-desc">${a.desc}</div></div></div>`).join('')}
+function renderOversight(){document.getElementById('oversight-group').innerHTML=OVERSIGHT_OPTIONS.map(o=>`<div class="radio-item ${selectedOversight===o.id?'selected':''}" onclick="selectOversight('${o.id}')"><div class="radio-dot"></div><span class="radio-label">${o.label}</span><span class="radio-desc">${o.desc}</span></div>`).join('')}
+function renderPresets(){document.getElementById('invariant-presets').innerHTML=INVARIANT_PRESETS.map(p=>`<span class="preset-pill ${activePresets.has(p)?'active':''}" onclick="togglePreset('${p}')">${p}</span>`).join('')}
+function toggleMembrane(id){checkedMembranes.has(id)?checkedMembranes.delete(id):checkedMembranes.add(id);renderMembranes()}
+function toggleAction(id){checkedActions.has(id)?checkedActions.delete(id):checkedActions.add(id);renderActions()}
+function selectOversight(id){selectedOversight=id;renderOversight()}
+function togglePreset(p){const ta=document.getElementById('invariants-text');const lines=ta.value.split('\n').map(l=>l.trim()).filter(Boolean);if(activePresets.has(p)){activePresets.delete(p);const i=lines.indexOf(p);if(i!==-1)lines.splice(i,1)}else{activePresets.add(p);if(!lines.includes(p))lines.push(p)}ta.value=lines.join('\n');renderPresets()}
+function applyDefaults(){const type=document.getElementById('agent-type').value;const d=DEFAULTS[type]||DEFAULTS.custom;checkedMembranes=new Set(d.membranes);checkedActions=new Set(d.actions);selectedOversight=d.oversight;activePresets=new Set(d.invariants);document.getElementById('invariants-text').value=d.invariants.join('\n');document.getElementById('agent-desc').value=type==='research'?'A governed research agent with citation and scope constraints.':type==='planning'?'A governed planning agent with human oversight on significant actions.':type==='coding'?'A governed coding agent with reversible file operations.':type==='retrieval'?'A governed retrieval agent with no-hallucination constraints.':type==='multi_agent'?'A governed multi-agent coordinator with full audit logging.':'';renderAll()}
+function renderAll(){renderMembranes();renderActions();renderOversight();renderPresets()}
+function generate(){const id=document.getElementById('agent-id').value.trim()||'my-governed-agent';const version=document.getElementById('agent-version').value.trim()||'1.0.0';const desc=document.getElementById('agent-desc').value.trim()||'A governed agent.';const type=document.getElementById('agent-type').value;const invLines=document.getElementById('invariants-text').value.split('\n').map(l=>l.trim()).filter(Boolean);const memList=[...checkedMembranes];const actList=[...checkedActions];const oMap={full:{logging:'full',human_in_loop:false,reversible_deltas:true},partial:{logging:'partial',human_in_loop:false,reversible_deltas:true},human_loop:{logging:'full',human_in_loop:true,reversible_deltas:true},reversible:{logging:'full',human_in_loop:false,reversible_deltas:true},minimal:{logging:'errors',human_in_loop:false,reversible_deltas:false}};const o=oMap[selectedOversight]||oMap.full;const now=new Date().toISOString().split('T')[0];const yaml=`# constitution.yaml\n# Constitutional OS Manifest — Spec v1.0\n# Generated by Constitution Builder — ${now}\n# DOI: 10.5281/zenodo.19075163\n\nconstitutional_os_spec: "1.0"\n\n# ── Identity ──────────────────────────────────────────────\nid: ${id}\nname: ${id.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}\nversion: ${version}\ndescription: ${desc}\nagent_type: ${type}\n\n# ── Membranes ─────────────────────────────────────────────\nmembranes:\n${memList.length?memList.map(m=>`  - id: ${m}\n    enabled: true`).join('\n'):'  []'}\n\n# ── Invariants ────────────────────────────────────────────\ninvariants:\n${invLines.length?invLines.map(i=>`  - "${i}"`).join('\n'):'  []'}\n\n# ── Allowed Actions ───────────────────────────────────────\nallowed_actions:\n  autonomous:\n${actList.filter(a=>!['modify_files','delegate','call_apis'].includes(a)).map(a=>`    - ${a}`).join('\n')||'    []'}\n  human_directed:\n${actList.filter(a=>['modify_files','delegate','call_apis'].includes(a)).map(a=>`    - ${a}`).join('\n')||'    []'}\n  blocked:\n    - remove_membrane\n    - disable_invariant\n    - revoke_human_primacy\n    - seal_state\n\n# ── Oversight & Logging ───────────────────────────────────\noversight:\n  logging: ${o.logging}\n  human_in_loop: ${o.human_in_loop}\n  reversible_deltas: ${o.reversible_deltas}\n  veto_window_seconds: 300\n\n# ── Continuity Chain ──────────────────────────────────────\ncontinuity_chain:\n  enabled: true\n  retention_days: 90\n  verify_on_boot: true\n\n# ── Governance Energy ─────────────────────────────────────\ngovernance_energy:\n  weights:\n    drift: 0.40\n    tension: 0.25\n    pending: 0.35\n  fixed_point_threshold: 0.05\n`;lastYaml=yaml;renderYaml(yaml)}
+function renderYaml(yaml){const lines=yaml.split('\n');const html=lines.map(line=>{if(line.trim().startsWith('#'))return`<span class="yaml-comment">${esc(line)}</span>`;const kv=line.match(/^(\s*)([\w_]+)(\s*:\s*)(.*)$/);if(kv){const[,indent,key,sep,val]=kv;const vc=val==='true'||val==='false'?'yaml-bool':val.startsWith('"')?'yaml-string':'yaml-value';return`${esc(indent)}<span class="yaml-key">${esc(key)}</span>${esc(sep)}<span class="${vc}">${esc(val)}</span>`}return`<span class="yaml-value">${esc(line)}</span>`}).join('\n');document.getElementById('yaml-preview').innerHTML=`<pre class="yaml-output">${html}</pre>`}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function copyYaml(){if(!lastYaml)return;navigator.clipboard.writeText(lastYaml).then(()=>{const m=document.getElementById('copy-msg');m.innerHTML='<span class="copy-success">Copied!</span>';setTimeout(()=>m.innerHTML='',2000)})}
+function downloadYaml(){if(!lastYaml)generate();const blob=new Blob([lastYaml],{type:'text/yaml'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='constitution.yaml';a.click();URL.revokeObjectURL(url)}
+applyDefaults();
+</script>
+</body>
+</html>
