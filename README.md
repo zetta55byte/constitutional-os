@@ -4,6 +4,8 @@
 
 **[→ Open Governance Playground](https://zetta55byte.github.io/constitutional-os/playground.html)**
 
+**[→ Constitution Builder](https://zetta55byte.github.io/constitutional-os/constitution-builder.html)** — generate your constitution.yaml in 90 seconds
+
 > **"You govern deltas, not thoughts. That's why it scales."**
 
 **A formal runtime for epistemic-governance systems.**
@@ -12,6 +14,17 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 [![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.19075163.svg)](https://zenodo.org/records/19075163)
+
+## Start Here
+
+| | |
+|---|---|
+| ▶️ **[Playground](https://zetta55byte.github.io/constitutional-os/playground.html)** | Interactive demo — simulate governance checks live |
+| 🛠️ **[Constitution Builder](https://zetta55byte.github.io/constitutional-os/constitution-builder.html)** | Generate your `constitution.yaml` in 90 seconds |
+| 📘 **[Spec v1](spec/v1/)** | The standard — membranes, deltas, chain, state machine |
+| 🧪 **[Reference Agent](examples/research-agent/agent.py)** | Hello World — governed research agent |
+| 🗺️ **[Architecture](docs/architecture.svg)** | System diagram |
+| 📄 **[Paper](https://zenodo.org/records/19075163)** | Formal proofs — DOI: 10.5281/zenodo.19075163 |
 
 ---
 
