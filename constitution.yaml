@@ -1,0 +1,157 @@
+# constitution.yaml
+# Constitutional OS Manifest — Spec v1.0
+# DOI: 10.5281/zenodo.19075163
+#
+# This file is the "package.json" of a governed agent.
+# It defines the membranes, invariants, allowed actions,
+# continuity chain config, and reversible delta rules
+# for a Constitutional OS deployment.
+#
+# Validate against: https://github.com/zetta55byte/constitutional-os/spec/v1/
+
+constitutional_os_spec: "1.0"
+
+# ── Identity ─────────────────────────────────────────────────────────────────
+id: my-governed-agent
+name: My Governed Agent
+version: 1.0.0
+description: A governed agent with safety-first membranes.
+author: Independent Researcher
+doi: ""  # Set to your Zenodo DOI after publishing
+
+# ── Membranes ─────────────────────────────────────────────────────────────────
+membranes:
+
+  - id: M1_safety
+    enabled: true
+    policy: S1_invariant_preservation
+    # Blocks critical autonomous changes and constitutional-scope changes
+    # without human direction.
+
+  - id: M2_reversibility
+    enabled: true
+    policy: R1_no_irreversible_pending
+    # Defers irreversible autonomous changes to human review.
+
+  - id: M3_pluralism
+    enabled: true
+    policy: P1_no_net_tension_increase
+    # Blocks changes that would eliminate future option space.
+
+  - id: M4_human_primacy
+    enabled: true
+    policy: H1_bounded_pending_proposals
+    max_pending: 5
+    # Defers significant, global, or irreversible autonomous changes.
+
+  # Custom membranes (optional)
+  # - id: custom.no_external_writes
+  #   enabled: true
+  #   rule: delta_type != "external_write"
+  #   verdict: BLOCK
+  #   reason: "External writes not permitted"
+
+# ── Invariants ────────────────────────────────────────────────────────────────
+invariants:
+
+  - id: I1_version_monotonic
+    enabled: true
+    severity: error
+    # State version never decreases.
+
+  - id: I2_profiles_initialized
+    enabled: true
+    severity: error
+    # Profile registry must be accessible.
+
+  - id: I3_log_append_only
+    enabled: true
+    severity: fatal
+    # Continuity log must not be retroactively modified.
+
+  - id: I4_human_primacy
+    enabled: true
+    severity: fatal
+    # No fatal actions executed autonomously without human approval.
+
+  - id: I5_eval_integrity
+    enabled: true
+    severity: error
+    # Eval history must not be tampered.
+
+  # Custom invariants (optional)
+  # - id: custom.no_empty_profiles
+  #   enabled: true
+  #   severity: error
+  #   rule: all_profiles_have_metrics
+
+# ── Allowed Actions ───────────────────────────────────────────────────────────
+allowed_actions:
+
+  autonomous:
+    # Actions the agent may take without human approval
+    - update_config
+    - load_profile
+    - run_eval
+    - investigate_degradation
+    - monitor_volatility
+    - note_improvement
+    # Conditions: severity must be normal or trivial, reversible must be true
+
+  assisted:
+    # Actions requiring human acknowledgment (non-blocking)
+    - update_profile
+    - set_status
+
+  human_directed:
+    # Actions requiring explicit human approval
+    - toggle_membrane
+    - toggle_invariant
+    - pause_system
+    - resume_system
+
+  # Blocked entirely (never permitted)
+  blocked:
+    - remove_membrane
+    - disable_invariant
+    - revoke_human_primacy
+    - seal_state
+
+# ── Continuity Chain ─────────────────────────────────────────────────────────
+continuity_chain:
+  enabled: true
+  retention_days: 90
+  verify_on_boot: true
+  hash_algorithm: sha256
+  # Chain entries are append-only and hash-linked.
+  # verify_on_boot checks chain integrity at startup.
+
+# ── Reversible Deltas ────────────────────────────────────────────────────────
+reversible_deltas:
+  strategy: explicit_inverse
+  # explicit_inverse: every delta carries payload_inv for rollback
+  # snapshot: full state snapshots (simpler but larger)
+  require_inverse: true
+  # If true, deltas without payload_inv are blocked by M2.
+
+# ── Profiles ─────────────────────────────────────────────────────────────────
+profiles:
+  # List of behavioral profile IDs to load on boot
+  - id: agent.default
+    # version: latest (or pin to specific version)
+
+# ── Governance Energy ────────────────────────────────────────────────────────
+governance_energy:
+  weights:
+    drift:    0.40
+    tension:  0.25
+    pending:  0.35
+  fixed_point_threshold: 0.05
+  # V(Σ) < fixed_point_threshold → system is at a constitutional fixed point
+
+# ── Human Veto Window ────────────────────────────────────────────────────────
+human_veto:
+  window_seconds: 300   # 5 minutes to review deferred actions
+  default_action: block # What happens if no human response: block | approve
+  notify:
+    - channel: console  # console | email | slack | webhook

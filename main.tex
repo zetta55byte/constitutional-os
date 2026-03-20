@@ -1,0 +1,870 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath, amssymb, amsfonts, amsthm}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{listings}
+\usepackage{authblk}
+
+\geometry{margin=1.25in}
+\onehalfspacing
+
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}{Remark}[section]
+
+\lstset{
+  basicstyle=\small\ttfamily,
+  breaklines=true,
+  frame=single,
+  language=Python,
+}
+
+% ============================================================
+\title{\textbf{Constitutional OS: A Formal Epistemic-Governance\\
+Runtime for AI Systems}}
+
+\author[1]{Zetta Byte}
+\affil[1]{Independent Researcher}
+\date{March 2026}
+% ============================================================
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\begin{abstract}
+We present Constitutional OS, a formal two-layer runtime architecture
+for governing AI systems. The system separates \emph{epistemic}
+concerns (what is true, how systems are drifting, what actions are
+recommended) from \emph{governance} concerns (what changes are
+allowed, under what constraints, with whose approval). These two
+layers compose into a single update operator $\Phi = G \circ E$
+over a global meta-state $\Sigma = (\Sigma_R, \Sigma_C, \Sigma_X)$,
+where $\Sigma_R$ is the reliability state, $\Sigma_C$ is the
+constitutional state, and $\Sigma_X$ is the reality layer.
+
+We prove four formal properties of this architecture:
+(1) \emph{Runtime safety}: invariants are preserved under all
+ratified transitions;
+(2) \emph{Reversibility}: every ratified delta has a groupoid
+inverse enabling rollback to any prior state;
+(3) \emph{Lyapunov stability}: a governance energy function
+$V(\Sigma) \geq 0$ is non-increasing under $\Phi$ for any
+admissible controller, with $V(\Sigma) = 0$ if and only if the
+system is at a constitutional-epistemic fixed point;
+(4) \emph{A-safety}: all recommendations from the epistemic layer
+satisfy invariant and membrane constraints before execution.
+
+The architecture is implemented as an open-source Python library
+(\texttt{pip install constitutional-os}) with 187 tests.
+\end{abstract}
+
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+
+Every serious proposal for AI governance eventually encounters
+the same gap: the gap between the \emph{principle} and the
+\emph{mechanism}. ``AI systems should be safe'' is a principle.
+What is the state machine? What are the invariants? How do you
+know when you have crossed a boundary? How do you roll back?
+``Human oversight is important'' is a principle. What triggers
+a human review? What happens if the human does not respond?
+What gets logged? The field has good philosophy and weak machinery.
+This paper builds the machinery.
+
+The core contribution is a formal two-layer architecture that
+separates two distinct computational concerns:
+
+\begin{itemize}
+\item \textbf{Reliability OS} (the epistemic layer): specifies,
+  evaluates, and forecasts how systems behave. It answers: what is
+  true? How is it changing? What seems wise to do?
+
+\item \textbf{Constitutional OS} (the governance layer): decides
+  which changes are allowed, under what constraints, and with whose
+  approval. It answers: what is permitted? Under what safeguards?
+  With whose consent?
+\end{itemize}
+
+A pure Reliability OS without Constitutional OS would be powerful
+but unsafe: it could recommend or automate changes that erode
+rights, concentrate power, or create irreversible harm. A pure
+Constitutional OS without Reliability OS would be principled but
+blind: it would enforce rules without a quantitative understanding
+of how systems are drifting or failing. Together, they form a
+complete \emph{epistemic-governance stack}.
+
+The two layers interlock through a single interface event,
+\texttt{ActionRecommended}, and compose into a single update
+operator $\Phi = G \circ E$ over the global meta-state. This
+formulation admits a Lyapunov stability analysis analogous to the
+attractor-ridge geometry used in biological regulatory circuits
+\citep{ferrell2002bistability,huang2009cellfate}: the governance
+energy $V(\Sigma)$ plays the role of a potential function, the
+four canonical membranes play the role of ridges, and
+constitutional-epistemic fixed points play the role of stable
+attractors.
+
+\paragraph{Contributions.} We make the following contributions:
+\begin{enumerate}
+  \item A formal definition of the global meta-state
+    $\Sigma = (\Sigma_R, \Sigma_C, \Sigma_X)$ and its transition
+    operator $\Phi = G \circ E$ (Section~\ref{sec:architecture}).
+  \item Four canonical membranes (safety, reversibility, pluralism,
+    human primacy) with explicit membrane policies for the
+    Lyapunov argument (Section~\ref{sec:membranes}).
+  \item A typed, reversible delta calculus with groupoid structure
+    and a hash-chained continuity log (Section~\ref{sec:delta}).
+  \item Four formal theorems: runtime safety, reversibility,
+    Lyapunov stability, and A-safety (Section~\ref{sec:theory}).
+  \item An open-source Python implementation with 187 tests
+    (Section~\ref{sec:implementation}).
+\end{enumerate}
+
+% ============================================================
+\section{Architecture}
+\label{sec:architecture}
+
+\subsection{Global Meta-State}
+
+The complete state of the epistemic-governance stack is:
+\[
+  \Sigma \;=\; (\Sigma_R,\; \Sigma_C,\; \Sigma_X)
+\]
+where:
+\begin{itemize}
+  \item $\Sigma_R = (P, H, F)$ is the \emph{reliability state}:
+    profile registry $P$, eval history $H$, forecast state $F$.
+  \item $\Sigma_C = (I, M, L, R, O)$ is the \emph{constitutional state}:
+    invariants $I$, membranes $M$, continuity log $L$,
+    rights $R$, obligations $O$.
+  \item $\Sigma_X$ is the \emph{reality layer}: raw observations
+    from the system being governed.
+\end{itemize}
+
+All state is \emph{immutable}. Every transition produces a new
+$\Sigma$. The old state is preserved in the continuity log,
+enabling rollback to any prior state.
+
+\subsection{The Two Operators}
+
+\paragraph{Epistemic operator $E$.}
+The Reliability OS implements:
+\[
+  E:\; \Sigma \;\to\; (\Sigma_R',\; \delta_{\mathrm{rec}})
+\]
+where $\Sigma_R'$ is the updated reliability state after running
+eval bundles and updating forecasts, and $\delta_{\mathrm{rec}}$
+is a recommended constitutional delta (if any).
+
+Concretely: $E$ loads behavioral profiles, runs eval bundles
+$b: X \to M$ against observed behavior, updates forecast curves
+$\Phi_F: (P, H) \to F$, and derives a candidate delta
+$\delta \in \Delta_C$ from the forecast state.
+
+\paragraph{Governance operator $G$.}
+The Constitutional OS implements:
+\[
+  G:\; (\Sigma,\; \delta) \;\to\; \Sigma_C'
+\]
+where $\Sigma_C'$ is the updated constitutional state after
+processing the proposed delta through invariant checks,
+membrane checks, a human veto window, and logging to the
+continuity chain.
+
+\paragraph{Combined operator $\Phi$.}
+\[
+  \Phi \;=\; G \circ E:\; \Sigma \;\to\; \Sigma'
+\]
+\[
+  \Phi(\Sigma) \;=\;
+  \begin{cases}
+    (\Sigma_R',\; \Sigma_C',\; \Sigma_X) & \text{if } \delta_{\mathrm{rec}}
+      \text{ is ratifiable} \\
+    (\Sigma_R',\; \Sigma_C,\; \Sigma_X)  & \text{otherwise}
+  \end{cases}
+\]
+
+\subsection{The Interface Event}
+
+The two layers communicate through exactly one event:
+\texttt{ActionRecommended}. Reliability OS fires it when the
+forecast engine determines something warrants action. Constitutional
+OS catches it and subjects the recommended delta to its full
+governance lifecycle.
+
+This single interface event is the key architectural decision.
+It enforces the separation of epistemic and governance concerns:
+the epistemic layer cannot directly modify the constitutional state,
+and the governance layer cannot directly access the epistemic
+pipeline. All cross-layer communication is explicit, typed, and
+logged.
+
+\subsection{The Three Integration Points}
+
+Based on feedback from the AI agent framework community
+\citep{langchain2024,autogen2024}, there are three choke points
+where Constitutional OS should be integrated:
+
+\begin{enumerate}
+  \item \texttt{propose\_plan(plan)} — at the planner/executor
+    boundary, evaluating behavioral plans before execution.
+  \item \texttt{propose\_action(action)} — at the executor/world
+    boundary, evaluating individual tool calls and external actions.
+  \item \texttt{propose\_delta(delta)} — at the self-modification
+    boundary, evaluating changes to the agent's own goals,
+    constraints, or capabilities.
+\end{enumerate}
+
+The third integration point — self-modification going through
+Constitutional OS — is the most important for AI safety.
+Any agent that can modify its own constitution must route that
+modification through the full governance lifecycle.
+
+% ============================================================
+\section{Behavioral Profiles}
+\label{sec:profiles}
+
+A \emph{profile} is a versioned specification of expected behavior.
+Profiles are the unit of configuration in Reliability OS.
+
+\begin{definition}[Profile]
+A profile $p \in \mathcal{P}$ is a tuple:
+\[
+  p = (\mathrm{id},\; v,\; \mathcal{M}_p,\; \mathcal{E}_p,\; \mathcal{A}_p,\; c)
+\]
+where $\mathrm{id}$ is a unique identifier, $v$ is a semantic
+version, $\mathcal{M}_p$ is a set of metric specifications,
+$\mathcal{E}_p$ is a set of eval bundle references,
+$\mathcal{A}_p$ is a set of available actions, and $c$ is
+a configuration dictionary.
+\end{definition}
+
+Each metric specification $m \in \mathcal{M}_p$ defines a name,
+threshold $\tau_m$, baseline $\mu_m$, and direction
+(higher-is-better or lower-is-better). Each eval bundle reference
+$e \in \mathcal{E}_p$ specifies a bundle identifier, whether the
+eval is required, and a weight.
+
+The profile registry $P$ maintains versioned history:
+\[
+  P:\; \mathrm{id} \;\mapsto\; (p_{\mathrm{current}},\; [p_1, p_2, \ldots])
+\]
+where the list contains prior versions, enabling rollback to any
+prior profile state.
+
+Profiles can be loaded from YAML or dict:
+\begin{lstlisting}
+from constitutional_os import ProfileLoader
+
+profile = ProfileLoader.from_dict({
+    "id": "agent.assistant",
+    "version": "2.0.0",
+    "metrics": [
+        {"name": "response_quality",
+         "threshold": 0.70, "baseline": 0.88,
+         "direction": "higher_is_better"},
+    ],
+    "evals": [
+        {"bundle_id": "core.integrity",
+         "required": True, "weight": 1.0},
+    ],
+})
+\end{lstlisting}
+
+% ============================================================
+\section{Invariants and Membranes}
+\label{sec:membranes}
+
+\subsection{Invariants}
+
+\begin{definition}[Invariant]
+A constitutional invariant is a predicate:
+\[
+  I_k:\; \Sigma \;\to\; \{\mathrm{true},\; \mathrm{false}\}
+\]
+that must hold at all times. The system maintains a set
+$\mathcal{I}$ of invariants with associated severities
+(warning, error, fatal).
+\end{definition}
+
+Five invariants are built in:
+\begin{enumerate}
+  \item $I_1$ (Version monotonicity): state version never decreases.
+  \item $I_2$ (Profiles initialized): profile registry accessible.
+  \item $I_3$ (Log append-only): continuity log not retroactively
+    modified, verified by hash chain.
+  \item $I_4$ (Human primacy): no fatal actions executed
+    autonomously without human approval.
+  \item $I_5$ (Eval integrity): eval history not tampered.
+\end{enumerate}
+
+\subsection{Membranes}
+
+\begin{definition}[Membrane]
+A membrane is a filter on proposed state transitions:
+\[
+  M_\ell:\; (\Sigma,\; \delta) \;\to\; \{\mathrm{pass},\; \mathrm{block},\; \mathrm{defer}\}
+\]
+where \textsc{pass} allows the transition, \textsc{block} rejects
+it, and \textsc{defer} routes it to human review before
+proceeding.
+\end{definition}
+
+We define four canonical membranes:
+
+\paragraph{$M_1$ — Safety membrane.}
+Blocks critical autonomous changes and constitutional-scope changes
+without human direction. Formally, $M_1$ blocks $\delta$ if:
+\[
+  (\mathrm{severity}(\delta) = \mathrm{critical}
+   \;\wedge\; \mathrm{autonomy}(\delta) = \mathrm{autonomous})
+  \;\vee\;
+  (\mathrm{scope}(\delta) = \mathrm{constitutional}
+   \;\wedge\; \mathrm{autonomy}(\delta) \neq \mathrm{human\text{-}directed})
+\]
+
+\paragraph{$M_2$ — Reversibility membrane.}
+Defers irreversible autonomous changes to human review:
+\[
+  M_2 \;\text{defers}\; \delta \;\text{ if }\;
+  \neg\,\mathrm{reversible}(\delta)
+  \;\wedge\; \mathrm{autonomy}(\delta) = \mathrm{autonomous}
+\]
+
+\paragraph{$M_3$ — Pluralism membrane.}
+Blocks changes that would eliminate future option space:
+\[
+  M_3 \;\text{blocks}\; \delta \;\text{ if }\;
+  \mathrm{type}(\delta) \in \{
+    \texttt{remove\_membrane},\;
+    \texttt{disable\_invariant},\;
+    \texttt{revoke\_human\_primacy},\;
+    \texttt{seal\_state}
+  \}
+\]
+
+\paragraph{$M_4$ — Human primacy membrane.}
+Defers significant, global, or irreversible autonomous changes:
+\[
+  M_4 \;\text{defers}\; \delta \;\text{ if }\;
+  (\mathrm{severity}(\delta) \in \{\mathrm{significant},\;\mathrm{critical}\}
+   \;\vee\; \mathrm{scope}(\delta) \in \{\mathrm{global},\;\mathrm{constitutional}\}
+   \;\vee\; \neg\,\mathrm{reversible}(\delta))
+  \;\wedge\; \mathrm{autonomy}(\delta) = \mathrm{autonomous}
+\]
+
+\subsection{Membrane Policy Schema}
+
+Table~\ref{tab:membranes} summarises the membrane policies
+relevant to the Lyapunov stability argument.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\small
+\begin{tabular}{p{2.5cm}p{3cm}p{4cm}p{4cm}}
+\toprule
+\textbf{Membrane} & \textbf{Policy} & \textbf{Reject if} & \textbf{Effect on $V$} \\
+\midrule
+$M_1$ Safety
+  & S1 — Invariant preservation
+  & $\exists\,i.\; I_i(\Sigma') = \mathrm{false}$
+  & $V_{\mathrm{tension}}$ non-increasing \\[3pt]
+$M_2$ Reversibility
+  & R1 — No irreversible pending
+  & New $p'$ not reversible/resolvable
+  & $V_{\mathrm{pending}}$ supported \\[3pt]
+$M_3$ Pluralism
+  & P1 — No net tension increase
+  & $\sum_i \alpha_i v_i(\Sigma') > \sum_i \alpha_i v_i(\Sigma)$
+  & $V_{\mathrm{tension}}(\Sigma') \le V_{\mathrm{tension}}(\Sigma)$ \\[3pt]
+$M_4$ Human primacy
+  & H1 — Bounded pending proposals
+  & $|\mathcal{P}(\Sigma')| > |\mathcal{P}(\Sigma)|$ or $> B_{\mathrm{pending}}$
+  & $V_{\mathrm{pending}}(\Sigma') \le V_{\mathrm{pending}}(\Sigma)$ \\
+\bottomrule
+\end{tabular}
+\caption{Membrane policy schema for Lyapunov-style governance stability.
+  Each policy enforces non-increase of one or more components of $V(\Sigma)$
+  under any ratified transition.}
+\label{tab:membranes}
+\end{table}
+
+% ============================================================
+\section{Delta Calculus and Continuity}
+\label{sec:delta}
+
+\subsection{Delta Types}
+
+All state changes are expressed as typed deltas drawn from
+a delta calculus $\Delta_C$. Each delta is:
+\[
+  \delta = (\mathrm{type},\; \mathrm{payload},\;
+            \mathrm{payload}_{\mathrm{inv}},\;
+            \mathrm{author},\; \mathrm{rationale})
+\]
+where $\mathrm{payload}_{\mathrm{inv}}$ is the inverse payload
+enabling rollback.
+
+The set of delta types includes: \texttt{load\_profile},
+\texttt{update\_profile}, \texttt{toggle\_invariant},
+\texttt{toggle\_membrane}, \texttt{set\_status},
+\texttt{pause\_system}, \texttt{resume\_system},
+\texttt{update\_config}, and epistemic recommendations
+(\texttt{investigate\_degradation}, \texttt{monitor\_volatility},
+\texttt{note\_improvement}).
+
+\subsection{Groupoid Structure}
+
+\begin{proposition}[Groupoid structure of $\Delta_C$]
+The set of deltas $\Delta_C$ forms a groupoid under composition:
+\begin{enumerate}
+  \item \emph{Identity}: for every $\Sigma$, there exists
+    $\mathrm{id}_\Sigma \in \Delta_C$ such that
+    $\mathrm{id}_\Sigma(\Sigma) = \Sigma$.
+  \item \emph{Inverse}: for every $\delta$, there exists
+    $\delta^{-1} \in \Delta_C$ such that
+    $\delta^{-1}(\delta(\Sigma)) = \Sigma$.
+  \item \emph{Composition}: if $\delta_1(\Sigma) = \Sigma'$ and
+    $\delta_2(\Sigma') = \Sigma''$, then
+    $(\delta_2 \circ \delta_1)(\Sigma) = \Sigma''$.
+  \item \emph{Associativity}:
+    $(\delta_3 \circ \delta_2) \circ \delta_1
+     = \delta_3 \circ (\delta_2 \circ \delta_1)$.
+\end{enumerate}
+\end{proposition}
+
+The groupoid structure guarantees that rollback is always possible:
+any sequence of ratified deltas can be undone by applying their
+inverses in reverse order.
+
+\subsection{Continuity Chain}
+
+The continuity log $L$ is an append-only sequence of log entries,
+each recording a delta application:
+\[
+  L = [e_0, e_1, \ldots, e_n]
+\]
+where each entry $e_i$ contains the delta identifier, type,
+fingerprint (SHA-256 of canonical serialization), state version,
+proposal identifier, status, and a hash of the previous entry:
+\[
+  e_i.\mathrm{prev\_hash}
+  = \mathrm{SHA256}(\mathrm{canonical}(e_{i-1}))[:16]
+\]
+The genesis entry has $e_0.\mathrm{prev\_hash} = \texttt{"genesis"}$.
+Chain integrity can be verified at any time:
+\begin{lstlisting}
+store.current.actions_log.verify()  # True if intact
+\end{lstlisting}
+
+% ============================================================
+\section{Formal Theory}
+\label{sec:theory}
+
+\subsection{Runtime Safety}
+
+\begin{theorem}[Runtime safety]
+\label{thm:safety}
+For any ratified delta $\delta$ and any state $\Sigma$ in which
+all invariants hold:
+\[
+  \mathrm{valid}(\Sigma) \;\Longrightarrow\; \mathrm{valid}(\delta(\Sigma))
+\]
+where $\mathrm{valid}(\Sigma) \Leftrightarrow \forall k.\; I_k(\Sigma) = \mathrm{true}$.
+\end{theorem}
+
+\begin{proof}
+By admissibility (Definition~\ref{def:admissible}), any ratified
+$\delta$ satisfies membrane condition 2 (invariant preservation):
+all invariants hold in both $\Sigma$ and $\Sigma' = \delta(\Sigma)$.
+\end{proof}
+
+\subsection{Reversibility}
+
+\begin{theorem}[Reversibility]
+\label{thm:reversibility}
+For every ratified delta $\delta$ and every state $\Sigma$:
+\[
+  \delta^{-1}(\delta(\Sigma)) = \Sigma
+\]
+The system can be rolled back to any prior state in the
+continuity chain.
+\end{theorem}
+
+\begin{proof}
+By the groupoid structure of $\Delta_C$ (Proposition 4.1), every
+delta has an inverse. The inverse is constructed from
+$\mathrm{payload}_{\mathrm{inv}}$ stored in the original delta.
+The \texttt{StateStore.rollback(n)} method applies inverse deltas
+in reverse order.
+\end{proof}
+
+\subsection{Lyapunov-Style Governance Stability}
+
+\subsubsection{Governance Energy}
+
+Let $\mathcal{E}$ be the set of eval bundles, $\mathcal{I}$ the
+set of constitutional invariants, and $\mathcal{P}(\Sigma)$ the
+set of pending proposals. Define:
+
+\paragraph{Drift term.}
+For each $e \in \mathcal{E}$, let $m_e(\Sigma)$ be its score
+and $\tau_e$ its threshold:
+\[
+  V_{\mathrm{drift}}(\Sigma)
+  = \sum_{e \in \mathcal{E}} w_e \cdot \max(0,\; \tau_e - m_e(\Sigma))
+\]
+
+\paragraph{Tension term.}
+For each $i \in \mathcal{I}$, let $v_i(\Sigma) \in \{0,1\}$
+indicate invariant tension:
+\[
+  V_{\mathrm{tension}}(\Sigma)
+  = \sum_{i \in \mathcal{I}} \alpha_i \cdot v_i(\Sigma)
+\]
+
+\paragraph{Pending term.}
+\[
+  V_{\mathrm{pending}}(\Sigma)
+  = \beta \cdot |\mathcal{P}(\Sigma)|
+\]
+
+\paragraph{Total.}
+\[
+  V(\Sigma)
+  = V_{\mathrm{drift}}(\Sigma)
+  + V_{\mathrm{tension}}(\Sigma)
+  + V_{\mathrm{pending}}(\Sigma)
+  \;\geq\; 0
+\]
+
+\subsubsection{Admissible Controllers}
+
+\begin{definition}[Admissible controller]
+\label{def:admissible}
+A controller $\Phi$ is \emph{admissible} if, for all $\Sigma$
+and all proposed $\delta$, whenever $\Phi$ ratifies $\delta$:
+\begin{enumerate}
+  \item $\delta$ is well-typed in the delta calculus.
+  \item All invariants hold in $\Sigma$ and $\delta(\Sigma)$.
+  \item $\delta$ passes all membranes $M_1$--$M_4$ at $\Sigma$.
+  \item All required eval bundles for $\delta$ have been run and
+    thresholds satisfied.
+\end{enumerate}
+\end{definition}
+
+\subsubsection{Local Monotonicity Lemma}
+
+\begin{lemma}[Local monotonicity]
+\label{lem:local}
+Let $\Sigma$ be a constitutional state and $\delta$ a well-typed
+delta satisfying conditions (1)--(4) of Definition~\ref{def:admissible}.
+Then:
+\[
+  V_{\mathrm{drift}}(\delta(\Sigma)) \leq V_{\mathrm{drift}}(\Sigma),
+  \quad
+  V_{\mathrm{tension}}(\delta(\Sigma)) \leq V_{\mathrm{tension}}(\Sigma),
+  \quad
+  V_{\mathrm{pending}}(\delta(\Sigma)) \leq V_{\mathrm{pending}}(\Sigma)
+\]
+and hence $V(\delta(\Sigma)) \leq V(\Sigma)$.
+\end{lemma}
+
+\begin{proof}
+\textit{Drift term.} By condition (4), every affected eval bundle
+$e$ satisfies $m_e(\delta(\Sigma)) \geq \tau_e$, so
+$\max(0, \tau_e - m_e(\delta(\Sigma))) = 0 \leq d_e(\Sigma)$.
+Unaffected bundles are unchanged. Summing: $V_{\mathrm{drift}}(\delta(\Sigma)) \leq V_{\mathrm{drift}}(\Sigma)$.
+
+\textit{Tension term.} By condition (3) and Policy P1 of $M_3$
+(pluralism), $\delta$ is rejected if it would increase
+$\sum_i \alpha_i v_i(\Sigma)$. Therefore any ratified $\delta$
+satisfies $V_{\mathrm{tension}}(\delta(\Sigma)) \leq V_{\mathrm{tension}}(\Sigma)$.
+
+\textit{Pending term.} By condition (3) and Policy H1 of $M_4$
+(human primacy), $\delta$ is rejected if it would increase
+$|\mathcal{P}(\Sigma)|$ beyond the current level or beyond
+$B_{\mathrm{pending}}$. Therefore any ratified $\delta$ satisfies
+$|\mathcal{P}(\delta(\Sigma))| \leq |\mathcal{P}(\Sigma)|$, and
+hence $V_{\mathrm{pending}}(\delta(\Sigma)) \leq V_{\mathrm{pending}}(\Sigma)$. \qed
+\end{proof}
+
+\subsubsection{Main Theorem}
+
+\begin{theorem}[Lyapunov-style governance stability]
+\label{thm:lyapunov}
+Let $V$ be the governance energy defined above and $\Phi$ an
+admissible controller. Then for any $\Sigma$ and any ratified
+transition $\Sigma' = \Phi(\Sigma, \delta)$:
+\[
+  V(\Sigma') \;\leq\; V(\Sigma)
+\]
+Moreover, $V(\Sigma) = 0$ if and only if $\Sigma$ is a
+\emph{constitutional fixed point}: no drift, no invariant tension,
+no pending proposals.
+\end{theorem}
+
+\begin{proof}
+By admissibility, any ratified $\delta$ satisfies the premises
+of Lemma~\ref{lem:local}. Therefore $V(\Sigma') \leq V(\Sigma)$.
+$V(\Sigma) = 0$ iff all three components vanish: no eval score
+below threshold, no invariants in tension, no pending proposals. \qed
+\end{proof}
+
+\begin{corollary}[Portability]
+Any controller implementing the constitutional protocol
+(Definition~\ref{def:admissible}) is Lyapunov-respecting,
+regardless of implementation language, inference strategy,
+or planning algorithm.
+\end{corollary}
+
+This corollary is the key portability result. It licenses third
+parties to build alternative controllers (stochastic, learned,
+distributed) and inherit Lyapunov stability, provided they satisfy
+the four admissibility conditions. The theorem is a property of
+the governance calculus, not of any specific implementation.
+
+\begin{remark}[Stable transients]
+Theorem~\ref{thm:lyapunov} does not require $V$ to be strictly
+decreasing at every step. The system may hold at constant $V > 0$
+when the admissible $\Phi$ has no valid delta to apply (all
+candidates are blocked or deferred by membranes). This is a
+\emph{stable transient}: $V$ is non-increasing but has not yet
+reached a fixed point. In practice this occurs when the forecast
+engine produces high-urgency recommendations that are deferred
+by $M_4$ pending human review.
+\end{remark}
+
+\subsection{A-Safety}
+
+\begin{theorem}[A-safety]
+\label{thm:a-safety}
+For all recommendations $\delta \in \mathcal{A}(F)$ produced by
+the forecast engine:
+\[
+  \mathrm{InvOK}(\Sigma, \delta) \;\wedge\; \mathrm{MemOK}(\delta)
+  \;\Longrightarrow\;
+  \forall k.\; I_k(\delta(\Sigma)) = \mathrm{true}
+\]
+where $\mathrm{InvOK}(\Sigma, \delta)$ means all invariants hold
+in $\delta(\Sigma)$, and $\mathrm{MemOK}(\delta)$ means $\delta$
+passes all membrane checks (PASS or DEFER).
+\end{theorem}
+
+\begin{proof}
+\emph{Constructive.} For each $\delta \in \mathcal{A}(F)$:
+(1) apply $\delta$ to a copy of $\Sigma$;
+(2) check all invariants on $\delta(\Sigma)$;
+(3) check all membranes on $\delta$.
+If (2) and (3) both hold, $\delta$ is safe. The function
+\texttt{check\_a\_safety(state, recommendations)} executes this
+proof for each recommendation and returns the result, including
+the full proof trace for each delta.
+
+Note that DEFER counts as safe: it means $M_4$ (human primacy)
+engaged correctly and routed the action to human review. Only
+BLOCK represents a structural safety failure.
+\end{proof}
+
+\subsection{Fixed Points and Attractors}
+
+A \emph{constitutional-epistemic fixed point} is a state
+$\Sigma^*$ such that $\Phi(\Sigma^*) = \Sigma^*$, i.e.,
+Reliability OS produces no recommendation that passes
+Constitutional OS filters, or all recommendations are blocked
+or deferred.
+
+These fixed points are the stable attractors of the governance
+system. The governance-epistemic landscape has the same geometric
+grammar as biological regulatory circuits
+\citep{ferrell2002bistability}: attractors (stable governance
+regimes) separated by ridges (membrane boundaries). The
+separatrix proximity function $\kappa(\Sigma)$ measures how
+close the current state is to the boundary between two governance
+basins, analogous to ridge curvature in dynamical systems.
+
+Four governance basins are defined based on the decomposition
+of $V(\Sigma)$:
+\begin{enumerate}
+  \item \emph{Stable governance}: $V(\Sigma) < 0.05$, true attractor.
+  \item \emph{Drifting epistemic}: forecast drift present,
+    governance intact.
+  \item \emph{Governance pressure}: membrane pressure or deferred
+    proposals accumulating.
+  \item \emph{Critical instability}: multiple subsystems under pressure.
+\end{enumerate}
+
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Constitutional AI.}
+Bai et al.\ \citep{bai2022constitutional} introduced Constitutional
+AI as a method for training AI systems to adhere to a set of
+principles through self-critique and revision. Our work is
+complementary: we provide a formal runtime substrate that enforces
+constitutional constraints at deployment time, rather than training
+time. Constitutional AI addresses the training problem; Constitutional
+OS addresses the deployment problem.
+
+\paragraph{Runtime verification and safety monitors.}
+The idea of a separate runtime component that filters or corrects
+agent actions is related to work on runtime verification
+\citep{leucker2009rv}, safety shields for reinforcement learning
+\citep{alshiekh2018shielding}, and safety monitors for controllers.
+Our membrane engine is a governance-flavored version of a safety
+monitor, extended with the pluralism and reversibility constraints
+that are specific to governance contexts.
+
+\paragraph{Reversible computation.}
+The delta calculus with groupoid structure sits in the lineage of
+reversible programming languages \citep{yokoyama2007janus},
+bidirectional transformations \citep{foster2007lens}, and
+reversible semantics. The key difference is that our deltas operate
+over a governance state space rather than a computation state space.
+
+\paragraph{Formal protocol verification.}
+TLA+ \citep{lamport2002tla}, temporal logic, and model checking for
+safety/liveness properties are related to our invariant checking.
+Our system provides a dynamic version of these guarantees:
+instead of verifying properties statically before deployment,
+we enforce them continuously at runtime.
+
+\paragraph{Capability systems and reference monitors.}
+Classic OS and security work on reference monitors
+\citep{anderson1972refmon} and capability systems is spiritually
+similar to our membrane engine. Both define authorized operations
+on protected state. Our membranes add two novel constraints
+absent from classical reference monitors: the pluralism membrane
+(no lock-in of future option space) and the reversibility membrane
+(no irreversible autonomous actions).
+
+\paragraph{AI alignment and oversight.}
+Debate \citep{irving2018debate}, amplification
+\citep{christiano2018amplification}, and recursive reward
+modeling \citep{leike2018reward} address the problem of specifying
+correct behavior for AI systems. Constitutional OS assumes that
+some behavioral specification exists (expressed as profiles and
+invariants) and provides the runtime machinery for enforcing it
+and governing changes to it.
+
+% ============================================================
+\section{Implementation}
+\label{sec:implementation}
+
+The Constitutional OS library is implemented in Python 3.10+
+and available at:
+\begin{center}
+\texttt{pip install constitutional-os}
+\end{center}
+Source code: \url{https://github.com/zetta55byte/constitutional-os}\\
+Whitepaper (Zenodo): \url{https://zenodo.org/records/19045723}
+
+\subsection{Architecture}
+
+The library is organized as:
+\begin{itemize}
+  \item \texttt{runtime/}: boot, state, events, operators,
+    theory, loop, visualization.
+  \item \texttt{profiles/}: loader, registry, diffing.
+  \item \texttt{invariants/}: engine, 5 built-in invariants.
+  \item \texttt{membranes/}: engine, 4 canonical membranes.
+  \item \texttt{evals/}: bundle runner, built-in bundles.
+  \item \texttt{forecast/}: projection engine, drift detection.
+  \item \texttt{actions/}: delta engine, continuity log.
+  \item \texttt{console/}: CLI and FastAPI HTTP surface.
+\end{itemize}
+
+\subsection{Quick Start}
+
+\begin{lstlisting}
+from constitutional_os import boot, phi
+from constitutional_os.evals.runner import EvalRunner
+from constitutional_os.forecast.engine import ForecastEngine
+
+# Boot the runtime
+store, dispatcher = boot()
+
+# Load a profile
+from constitutional_os import ProfileLoader, ProfileLoaded
+profile = ProfileLoader.from_dict({...})
+store.current.profiles.register(profile)
+state = dispatcher.dispatch(store.current,
+    ProfileLoaded(profile_id=profile.id, ...))
+store.apply(state)
+
+# Run Phi = G o E
+result = phi(store.current, EvalRunner(),
+             ForecastEngine(), dispatcher, {})
+print(f"Verdict: {result.governance_result.verdict}")
+print(f"Fixed point: {result.is_fixed_point}")
+
+# Check stability
+from constitutional_os import lyapunov, stability_report
+v = lyapunov(store.current)
+print(f"V(Sigma) = {v.total:.4f}")
+\end{lstlisting}
+
+\subsection{Tests}
+
+The library includes 187 tests across 8 test files:
+profiles (21), invariants (24), membranes (25), evals (19),
+forecast (24), actions (18), theory (28), runtime (28).
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have presented Constitutional OS, a formal epistemic-governance
+runtime for AI systems. The key contributions are:
+
+\begin{enumerate}
+  \item A clean separation of epistemic (Reliability OS) and
+    governance (Constitutional OS) concerns, connected through
+    a single typed interface event.
+  \item Four canonical membranes with explicit formal policies
+    sufficient to prove the Lyapunov stability theorem.
+  \item A typed, reversible delta calculus with groupoid structure
+    and hash-chained continuity log.
+  \item Four formal theorems: runtime safety, reversibility,
+    Lyapunov stability, and A-safety.
+  \item A portability corollary establishing that any controller
+    implementing the constitutional protocol inherits
+    Lyapunov stability.
+\end{enumerate}
+
+The governance-epistemic landscape exhibits the same geometric
+grammar as biological regulatory circuits: attractors, ridges,
+and separatrices. Constitutional-epistemic fixed points are the
+stable attractors of the governed system. The Lyapunov function
+$V(\Sigma)$ measures governance energy, and the four membranes
+serve as ridges that prevent transitions into unsafe basins.
+
+The most important open question is the integration of
+Constitutional OS with agent frameworks. The three-choke-point
+API (\texttt{propose\_plan}, \texttt{propose\_action},
+\texttt{propose\_delta}) provides the right hooks, but the
+practical challenge of embedding formal governance into
+high-throughput agent systems remains to be addressed.
+
+% ============================================================
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
