@@ -1,0 +1,77 @@
+<svg width="680" height="620" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <style>
+    .th { font-family: sans-serif; font-size: 14px; font-weight: 500; }
+    .ts { font-family: sans-serif; font-size: 12px; font-weight: 400; }
+    .arr { stroke: #888780; stroke-width: 1.5; fill: none; }
+  </style>
+</defs>
+
+<!-- Column headers -->
+<rect x="40" y="20" width="280" height="44" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text class="th" x="180" y="42" text-anchor="middle" dominant-baseline="central" fill="#3C3489">Constitutional OS</text>
+<rect x="360" y="20" width="280" height="44" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th" x="500" y="42" text-anchor="middle" dominant-baseline="central" fill="#444441">Collatz conjecture</text>
+
+<!-- Update rule -->
+<rect x="40" y="86" width="280" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text class="th" x="180" y="106" text-anchor="middle" dominant-baseline="central" fill="#3C3489">Update rule</text>
+<text class="ts" x="180" y="126" text-anchor="middle" dominant-baseline="central" fill="#534AB7">Φ = G ∘ E</text>
+<rect x="360" y="86" width="280" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th" x="500" y="106" text-anchor="middle" dominant-baseline="central" fill="#444441">Update rule</text>
+<text class="ts" x="500" y="126" text-anchor="middle" dominant-baseline="central" fill="#5F5E5A">n/2 if even, 3n+1 if odd</text>
+
+<!-- Constraint -->
+<rect x="40" y="162" width="280" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text class="th" x="180" y="182" text-anchor="middle" dominant-baseline="central" fill="#085041">Constraint</text>
+<text class="ts" x="180" y="202" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">Admissible controllers only</text>
+<rect x="360" y="162" width="280" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th" x="500" y="182" text-anchor="middle" dominant-baseline="central" fill="#712B13">Constraint</text>
+<text class="ts" x="500" y="202" text-anchor="middle" dominant-baseline="central" fill="#993C1D">None</text>
+
+<!-- Lyapunov -->
+<rect x="40" y="238" width="280" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text class="th" x="180" y="258" text-anchor="middle" dominant-baseline="central" fill="#085041">Lyapunov function</text>
+<text class="ts" x="180" y="278" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">V = V_drift + V_tension + V_pending</text>
+<rect x="360" y="238" width="280" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th" x="500" y="258" text-anchor="middle" dominant-baseline="central" fill="#712B13">Lyapunov function</text>
+<text class="ts" x="500" y="278" text-anchor="middle" dominant-baseline="central" fill="#993C1D">Unknown</text>
+
+<!-- Convergence -->
+<rect x="40" y="314" width="280" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text class="th" x="180" y="334" text-anchor="middle" dominant-baseline="central" fill="#085041">Convergence</text>
+<text class="ts" x="180" y="354" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">Guaranteed by construction</text>
+<rect x="360" y="314" width="280" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th" x="500" y="334" text-anchor="middle" dominant-baseline="central" fill="#712B13">Convergence</text>
+<text class="ts" x="500" y="354" text-anchor="middle" dominant-baseline="central" fill="#993C1D">Observed, unproven</text>
+
+<!-- Divider -->
+<line x1="40" y1="396" x2="640" y2="396" stroke="#888780" stroke-width="0.5" stroke-dasharray="4 4"/>
+
+<!-- Membrane label -->
+<text class="ts" x="340" y="422" text-anchor="middle" dominant-baseline="central" fill="#5F5E5A">Why the membranes are not arbitrary</text>
+
+<!-- Three membrane boxes -->
+<rect x="40" y="440" width="186" height="44" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th" x="133" y="458" text-anchor="middle" dominant-baseline="central" fill="#712B13">Remove M3</text>
+<text class="ts" x="133" y="474" text-anchor="middle" dominant-baseline="central" fill="#993C1D">V_tension not monotone</text>
+
+<rect x="247" y="440" width="186" height="44" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th" x="340" y="458" text-anchor="middle" dominant-baseline="central" fill="#712B13">Remove M4</text>
+<text class="ts" x="340" y="474" text-anchor="middle" dominant-baseline="central" fill="#993C1D">V_pending unbounded</text>
+
+<rect x="454" y="440" width="186" height="44" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text class="th" x="547" y="458" text-anchor="middle" dominant-baseline="central" fill="#712B13">Loosen either</text>
+<text class="ts" x="547" y="474" text-anchor="middle" dominant-baseline="central" fill="#993C1D">Proof no longer holds</text>
+
+<!-- Arrow to conclusion -->
+<line x1="340" y1="484" x2="340" y2="516" stroke="#888780" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+<!-- Conclusion -->
+<rect x="80" y="516" width="520" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text class="th" x="340" y="536" text-anchor="middle" dominant-baseline="central" fill="#3C3489">Governance with proofs</text>
+<text class="ts" x="340" y="556" text-anchor="middle" dominant-baseline="central" fill="#534AB7">vs governance by vibes</text>
+</svg>
