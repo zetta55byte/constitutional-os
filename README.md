@@ -310,6 +310,11 @@ constitutional_os/
 ```
 
 ---
+## Reference Implementation
+
+[**governed-research-lab**](https://github.com/zetta55byte/governed-research-lab) —
+Five governed agents demonstrating M1–M4 membrane checking, continuity chain,
+reversible deltas, and human escalation in a live research pipeline.
 
 ## Formal foundations
 
