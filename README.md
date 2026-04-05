@@ -332,41 +332,49 @@ constitutional-os rollback --steps 2
 ## Architecture
 
 ```
-constitutional_os/
-├── runtime/
-│   ├── state.py        # Global meta-state Σ = (Σ_R, Σ_C, Σ_X)
-│   ├── events.py       # Event types + dispatcher
-│   ├── boot.py         # Boot sequence
-│   ├── operators.py    # Φ = G ∘ E, epistemic + governance operators
-│   ├── theory.py       # Lyapunov V(Σ), A-safety, basin analysis
-│   ├── loop.py         # Background event loop
-│   └── visualization.py # Basin maps, Lyapunov plots
-│
-├── profiles/
-│   └── loader.py       # Profile DSL, registry, diffing
-│
-├── invariants/
-│   └── engine.py       # Invariant engine + built-in library (5 invariants)
-│
-├── membranes/
-│   └── engine.py       # Membrane engine + four canonical membranes
-│
-├── evals/
-│   └── runner.py       # Eval bundles, runner, reports, history
-│
-├── forecast/
-│   └── engine.py       # Forecast projections, drift detection, recommendations
-│
-├── actions/
-│   ├── deltas.py       # Delta calculus + continuity chain
-│   └── engine.py       # Delta apply/rollback over MetaState
-│
-└── console/
-    ├── cli.py          # Command-line interface
-    └── api.py          # FastAPI HTTP/WebSocket surface
+┌──────────────────────────────────────────┐
+│                hcderiv                   │
+│  Exact Curvature Engine (NumPy + JAX)    │
+│──────────────────────────────────────────│
+│  • Hypercomplex algebra                  │
+│  • grad / hessian / jacobian APIs        │
+│  • Backend registry (NumPy, JAX)         │
+│  • Machine-precision Hessians            │
+│  • Scientific examples + benchmarks      │
+└──────────────────────────────────────────┘
+                    │
+                    │ exact curvature
+                    ▼
+┌──────────────────────────────────────────┐
+│           constitutional-os              │
+│     Deterministic Governance Runtime     │
+│──────────────────────────────────────────│
+│  • Membranes (M1–M4)                     │
+│  • Invariants + Lyapunov stability       │
+│  • Delta calculus + reversible deltas    │
+│  • Offline, deterministic agent loop     │
+└──────────────────────────────────────────┘
+                    │
+                    │ governance substrate
+                    ▼
+┌──────────────────────────────────────────┐
+│       governed-research-lab-v2           │
+│     Curvature-Governed Agent Layer       │
+│──────────────────────────────────────────│
+│  • CurvatureEngine (3×3 Hessian of V(t)) │
+│  • Eigenvalue-based safety gate          │
+│  • Delta commit filtering                │
+│  • Multi-agent governed research loop    │
+└──────────────────────────────────────────┘
 ```
 
----
+**hcderiv** provides exact curvature via a backend-aware hypercomplex algebra.
+**constitutional-os** consumes curvature as a governance signal inside its
+membrane and invariant system. **governed-research-lab-v2** integrates both
+layers: eigenvalue-based safety gates and delta commit filtering.
+
+*mathematics → governance → agent behavior*
+
 ## Reference Implementation
 
 [**governed-research-lab**](https://github.com/zetta55byte/governed-research-lab) —
