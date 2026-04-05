@@ -31,7 +31,12 @@ classifiers = [
 ]
 
 # Core dependencies — intentionally minimal
-dependencies = []
+dependencies = [
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.20",
+]
 
 [project.optional-dependencies]
 yaml = ["pyyaml>=6.0"]
