@@ -13,13 +13,13 @@ Compose(d1, d2): state -> state
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
-from datetime import datetime, timezone
-from enum import Enum
+
 import hashlib
 import json
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
 
 
 def _now() -> str:
@@ -33,29 +33,29 @@ def _id() -> str:
 # ── Delta types ───────────────────────────────────────────────────────────────
 class DeltaType(Enum):
     # Profile operations
-    LOAD_PROFILE     = "load_profile"
-    UPDATE_PROFILE   = "update_profile"
-    REMOVE_PROFILE   = "remove_profile"
+    LOAD_PROFILE = "load_profile"
+    UPDATE_PROFILE = "update_profile"
+    REMOVE_PROFILE = "remove_profile"
 
     # Invariant operations
-    ADD_INVARIANT    = "add_invariant"
+    ADD_INVARIANT = "add_invariant"
     REMOVE_INVARIANT = "remove_invariant"
     TOGGLE_INVARIANT = "toggle_invariant"
 
     # Membrane operations
-    ADD_MEMBRANE     = "add_membrane"
-    TOGGLE_MEMBRANE  = "toggle_membrane"
+    ADD_MEMBRANE = "add_membrane"
+    TOGGLE_MEMBRANE = "toggle_membrane"
 
     # Eval operations
-    RUN_EVAL         = "run_eval"
+    RUN_EVAL = "run_eval"
 
     # System operations
-    SET_STATUS       = "set_status"
-    PAUSE_SYSTEM     = "pause_system"
-    RESUME_SYSTEM    = "resume_system"
+    SET_STATUS = "set_status"
+    PAUSE_SYSTEM = "pause_system"
+    RESUME_SYSTEM = "resume_system"
 
     # Configuration
-    UPDATE_CONFIG    = "update_config"
+    UPDATE_CONFIG = "update_config"
 
 
 # ── Delta ─────────────────────────────────────────────────────────────────────
@@ -69,21 +69,25 @@ class Delta:
       2. Undo itself (inverse transform)
       3. Compose with other deltas (groupoid structure)
     """
-    id:          str  = field(default_factory=_id)
-    delta_type:  str  = ""
-    payload:     dict = field(default_factory=dict)
+
+    id: str = field(default_factory=_id)
+    delta_type: str = ""
+    payload: dict = field(default_factory=dict)
     inverse_payload: dict = field(default_factory=dict)  # data needed to undo
-    author:      str  = "system"
-    rationale:   str  = ""
-    created_at:  str  = field(default_factory=_now)
-    proposal_id: str  = ""
+    author: str = "system"
+    rationale: str = ""
+    created_at: str = field(default_factory=_now)
+    proposal_id: str = ""
 
     def fingerprint(self) -> str:
-        canonical = json.dumps({
-            "type": self.delta_type,
-            "payload": self.payload,
-            "created_at": self.created_at,
-        }, sort_keys=True)
+        canonical = json.dumps(
+            {
+                "type": self.delta_type,
+                "payload": self.payload,
+                "created_at": self.created_at,
+            },
+            sort_keys=True,
+        )
         return hashlib.sha256(canonical.encode()).hexdigest()[:12]
 
 
@@ -102,12 +106,13 @@ class DeltaEngine:
 
         if dt == DeltaType.LOAD_PROFILE.value:
             from constitutional_os.profiles.loader import ProfileLoader
+
             profile = ProfileLoader.from_dict(delta.payload["profile"])
             state.profiles.register(profile)
             return state.tick()
 
         elif dt == DeltaType.TOGGLE_INVARIANT.value:
-            inv_id  = delta.payload["invariant_id"]
+            inv_id = delta.payload["invariant_id"]
             enabled = delta.payload["enabled"]
             inv = state.invariants.get(inv_id)
             if inv:
@@ -115,7 +120,7 @@ class DeltaEngine:
             return state.tick()
 
         elif dt == DeltaType.TOGGLE_MEMBRANE.value:
-            mem_id  = delta.payload["membrane_id"]
+            mem_id = delta.payload["membrane_id"]
             enabled = delta.payload["enabled"]
             mem = state.membranes._membranes.get(mem_id)
             if mem:
@@ -131,7 +136,11 @@ class DeltaEngine:
         elif dt == DeltaType.RESUME_SYSTEM.value:
             return replace(state, status="running").tick()
 
-        elif dt in ('note_improvement', 'monitor_volatility', 'investigate_degradation'):
+        elif dt in (
+            "note_improvement",
+            "monitor_volatility",
+            "investigate_degradation",
+        ):
             # Epistemic recommendations — no structural change
             return state.tick()
         else:
@@ -140,25 +149,27 @@ class DeltaEngine:
     def inverse(self, state: "RuntimeState", delta: Delta) -> "RuntimeState":
         """Apply the inverse of a delta (rollback)."""
         inv_delta = Delta(
-            delta_type      = delta.delta_type,
-            payload         = delta.inverse_payload,
-            inverse_payload = delta.payload,
-            author          = delta.author,
-            rationale       = f"ROLLBACK of delta {delta.id}: {delta.rationale}",
+            delta_type=delta.delta_type,
+            payload=delta.inverse_payload,
+            inverse_payload=delta.payload,
+            author=delta.author,
+            rationale=f"ROLLBACK of delta {delta.id}: {delta.rationale}",
         )
         return self.apply(state, inv_delta)
 
 
 def _copy_registry(reg):
     from constitutional_os.profiles.loader import ProfileRegistry
+
     new = ProfileRegistry()
-    new._current  = dict(reg._current)
-    new._history  = {k: list(v) for k, v in reg._history.items()}
+    new._current = dict(reg._current)
+    new._history = {k: list(v) for k, v in reg._history.items()}
     return new
 
 
 def _copy_invariants(inv_set):
     from constitutional_os.invariants.engine import InvariantSet
+
     new = InvariantSet()
     new._invariants = dict(inv_set._invariants)
     return new
@@ -166,6 +177,7 @@ def _copy_invariants(inv_set):
 
 def _copy_membranes(mem_set):
     from constitutional_os.membranes.engine import MembraneSet
+
     new = MembraneSet()
     new._membranes = dict(mem_set._membranes)
     return new
@@ -175,17 +187,18 @@ def _copy_membranes(mem_set):
 @dataclass
 class LogEntry:
     """One entry in the continuity chain."""
-    seq:          int
-    delta_id:     str
-    delta_type:   str
-    fingerprint:  str
+
+    seq: int
+    delta_id: str
+    delta_type: str
+    fingerprint: str
     state_version: int
-    proposal_id:  str
-    status:       str   # proposed | ratified | executed | rolled_back
-    ts:           str   = field(default_factory=_now)
-    author:       str   = "system"
-    rationale:    str   = ""
-    prev_hash:    str   = ""   # hash of previous entry (chain integrity)
+    proposal_id: str
+    status: str  # proposed | ratified | executed | rolled_back
+    ts: str = field(default_factory=_now)
+    author: str = "system"
+    rationale: str = ""
+    prev_hash: str = ""  # hash of previous entry (chain integrity)
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -217,9 +230,9 @@ class ContinuityLog:
     def verify(self) -> bool:
         """Verify chain integrity. Returns False if tampered."""
         for i, entry in enumerate(self._entries[1:], 1):
-            prev = self._entries[i-1]
+            prev = self._entries[i - 1]
             prev_data = json.dumps(prev.to_dict(), sort_keys=True)
-            expected  = hashlib.sha256(prev_data.encode()).hexdigest()[:16]
+            expected = hashlib.sha256(prev_data.encode()).hexdigest()[:16]
             if entry.prev_hash != expected:
                 self._tampered = True
                 return False

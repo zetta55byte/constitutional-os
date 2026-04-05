@@ -2,11 +2,12 @@
 tests/test_forecast.py
 Tests for forecast/engine.py: projection, recommendations, risk classification.
 """
-import pytest
 
 from constitutional_os.forecast.engine import (
-    ForecastEngine, ForecastCurve, ForecastPoint,
-    ForecastRecommendation, ForecastState,
+    ForecastCurve,
+    ForecastEngine,
+    ForecastRecommendation,
+    ForecastState,
     risk_heatmap,
 )
 
@@ -23,8 +24,8 @@ class TestForecastEngine:
 
     def test_single_value_history(self):
         curve = self.engine.project("quality", "p1", [0.85])
-        assert len(curve.points) == 7   # horizon_days
-        assert curve.metric     == "quality"
+        assert len(curve.points) == 7  # horizon_days
+        assert curve.metric == "quality"
         assert curve.profile_id == "p1"
 
     def test_horizon_respected(self):
@@ -43,41 +44,42 @@ class TestForecastEngine:
         assert confidences[0] >= confidences[-1]
 
     def test_intervals_widen_with_horizon(self):
-        curve  = self.engine.project("quality", "p1", [0.85] * 7)
+        curve = self.engine.project("quality", "p1", [0.85] * 7)
         widths = [p.upper - p.lower for p in curve.points]
         assert widths[0] <= widths[-1]
 
     def test_trend_stable(self):
         stable = [0.85] * 14
-        curve  = self.engine.project("quality", "p1", stable)
+        curve = self.engine.project("quality", "p1", stable)
         assert curve.trend == "stable"
 
     def test_trend_degrading(self):
         degrading = [0.9 - i * 0.05 for i in range(14)]
-        curve     = self.engine.project("quality", "p1", degrading)
+        curve = self.engine.project("quality", "p1", degrading)
         assert curve.trend in ("degrading", "slowly_changing")
 
     def test_risk_low_for_stable(self):
         stable = [0.85] * 14
-        curve  = self.engine.project("quality", "p1", stable)
+        curve = self.engine.project("quality", "p1", stable)
         assert curve.risk_level in ("low", "medium")
 
     def test_risk_high_for_volatile(self):
         import random
+
         random.seed(42)
         volatile = [random.uniform(0.3, 0.9) for _ in range(14)]
-        curve    = self.engine.project("quality", "p1", volatile)
+        curve = self.engine.project("quality", "p1", volatile)
         assert curve.risk_level in ("medium", "high", "critical")
 
     def test_summary_string(self):
         curve = self.engine.project("quality", "p1", [0.85] * 7)
-        s     = curve.summary()
+        s = curve.summary()
         assert "quality" in s
         assert "projected" in s.lower() or "stable" in s.lower()
 
     def test_at_day(self):
         curve = self.engine.project("quality", "p1", [0.85] * 7, horizon=7)
-        p3    = curve.at_day(3)
+        p3 = curve.at_day(3)
         assert p3 is not None
         assert p3.t == 3
 
@@ -94,23 +96,23 @@ class TestRecommendations:
 
     def test_no_recommendation_for_low_risk(self):
         stable = [0.85] * 14
-        curve  = self.engine.project("quality", "p1", stable)
-        rec    = self.engine.recommend(curve)
+        curve = self.engine.project("quality", "p1", stable)
+        rec = self.engine.recommend(curve)
         assert rec is None
 
     def test_recommendation_for_high_risk(self):
         degrading = [0.9 - i * 0.08 for i in range(14)]
-        curve     = self.engine.project("quality", "p1", degrading)
+        curve = self.engine.project("quality", "p1", degrading)
         # Force high risk
         curve.risk_level = "high"
         rec = self.engine.recommend(curve)
         assert rec is not None
-        assert rec.metric     == "quality"
+        assert rec.metric == "quality"
         assert rec.profile_id == "p1"
 
     def test_recommendation_for_critical_risk(self):
-        degrading  = [0.9 - i * 0.1 for i in range(14)]
-        curve      = self.engine.project("quality", "p1", degrading)
+        degrading = [0.9 - i * 0.1 for i in range(14)]
+        curve = self.engine.project("quality", "p1", degrading)
         curve.risk_level = "critical"
         rec = self.engine.recommend(curve)
         assert rec is not None
@@ -119,8 +121,8 @@ class TestRecommendations:
     def test_recommendation_has_rationale(self):
         curve = self.engine.project("quality", "p1", [0.8] * 14)
         curve.risk_level = "high"
-        curve.trend      = "degrading"
-        rec  = self.engine.recommend(curve)
+        curve.trend = "degrading"
+        rec = self.engine.recommend(curve)
         if rec:
             assert len(rec.rationale) > 10
 
@@ -137,16 +139,20 @@ class TestRecommendations:
 class TestForecastState:
 
     def test_add_curve(self):
-        fs    = ForecastState()
+        fs = ForecastState()
         curve = ForecastCurve(metric="q", profile_id="p1", horizon_days=7)
         fs.add_curve(curve)
         assert "p1:q" in fs.curves
 
     def test_add_recommendation(self):
-        fs  = ForecastState()
+        fs = ForecastState()
         rec = ForecastRecommendation(
-            recommendation_id="r1", profile_id="p1", metric="q",
-            action_type="investigate", rationale="test", urgency="high",
+            recommendation_id="r1",
+            profile_id="p1",
+            metric="q",
+            action_type="investigate",
+            rationale="test",
+            urgency="high",
         )
         fs.add_recommendation(rec)
         assert len(fs.recommendations) == 1
@@ -154,10 +160,16 @@ class TestForecastState:
     def test_pending_recommendations_high_critical_only(self):
         fs = ForecastState()
         for urgency in ["low", "normal", "high", "critical"]:
-            fs.add_recommendation(ForecastRecommendation(
-                recommendation_id=urgency, profile_id="p1", metric="q",
-                action_type="test", rationale="test", urgency=urgency,
-            ))
+            fs.add_recommendation(
+                ForecastRecommendation(
+                    recommendation_id=urgency,
+                    profile_id="p1",
+                    metric="q",
+                    action_type="test",
+                    rationale="test",
+                    urgency=urgency,
+                )
+            )
         pending = fs.pending_recommendations()
         assert len(pending) == 2
         assert all(r.urgency in ("high", "critical") for r in pending)
@@ -172,9 +184,11 @@ class TestRunAll:
         class FakeState:
             class reality:
                 observations = []
+
             class profiles:
                 @staticmethod
-                def all(): return []
+                def all():
+                    return []
 
         fs = engine.run_all(FakeState(), {})
         assert len(fs.curves) == 0
@@ -182,16 +196,18 @@ class TestRunAll:
     def test_run_all_with_history(self):
         engine = ForecastEngine()
         history_map = {
-            "p1:quality": [0.9 - i*0.01 for i in range(14)],
-            "p1:latency": [600 + i*10   for i in range(14)],
+            "p1:quality": [0.9 - i * 0.01 for i in range(14)],
+            "p1:latency": [600 + i * 10 for i in range(14)],
         }
 
         class FakeState:
             class reality:
                 observations = []
+
             class profiles:
                 @staticmethod
-                def all(): return []
+                def all():
+                    return []
 
         fs = engine.run_all(FakeState(), history_map)
         assert "p1:quality" in fs.curves
@@ -203,10 +219,20 @@ class TestRiskHeatmap:
 
     def test_heatmap_structure(self):
         fs = ForecastState()
-        c1 = ForecastCurve(metric="quality", profile_id="p1",
-                           horizon_days=7, risk_level="high", trend="degrading")
-        c2 = ForecastCurve(metric="latency", profile_id="p1",
-                           horizon_days=7, risk_level="low",  trend="stable")
+        c1 = ForecastCurve(
+            metric="quality",
+            profile_id="p1",
+            horizon_days=7,
+            risk_level="high",
+            trend="degrading",
+        )
+        c2 = ForecastCurve(
+            metric="latency",
+            profile_id="p1",
+            horizon_days=7,
+            risk_level="low",
+            trend="stable",
+        )
         fs.add_curve(c1)
         fs.add_curve(c2)
 
@@ -214,6 +240,6 @@ class TestRiskHeatmap:
         assert "p1" in hm
         assert "quality" in hm["p1"]
         assert "latency" in hm["p1"]
-        assert hm["p1"]["quality"]["risk"]  == "high"
-        assert hm["p1"]["latency"]["risk"]  == "low"
+        assert hm["p1"]["quality"]["risk"] == "high"
+        assert hm["p1"]["latency"]["risk"] == "low"
         assert hm["p1"]["quality"]["trend"] == "degrading"

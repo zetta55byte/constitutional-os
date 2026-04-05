@@ -13,27 +13,34 @@ Fixed point: Σ* such that Φ(Σ*) = Σ*
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, replace
+
+from dataclasses import dataclass
 from typing import Optional
-from constitutional_os.runtime.state import MetaState, ReliabilityState, ConstitutionalState
+
 from constitutional_os.runtime.events import ActionRecommended
+from constitutional_os.runtime.state import (
+    ConstitutionalState,
+    MetaState,
+    ReliabilityState,
+)
 
 
 # ── Epistemic operator E ──────────────────────────────────────────────────────
 @dataclass
 class EpistemicResult:
     """Output of E(Σ): updated Σ_R and an optional recommended δ."""
-    new_reliability:    ReliabilityState
-    recommendation:     Optional[ActionRecommended]
-    eval_summaries:     list[str] = None
-    drift_alerts:       list[str] = None
+
+    new_reliability: ReliabilityState
+    recommendation: Optional[ActionRecommended]
+    eval_summaries: list[str] = None
+    drift_alerts: list[str] = None
 
 
 def epistemic_step(
-    state:        MetaState,
-    eval_runner:  "EvalRunner",
+    state: MetaState,
+    eval_runner: "EvalRunner",
     forecast_eng: "ForecastEngine",
-    history_map:  dict,
+    history_map: dict,
 ) -> EpistemicResult:
     """
     E(Σ) = (Σ_R', δ_rec)
@@ -42,19 +49,19 @@ def epistemic_step(
     2. Update forecast curves → update F
     3. Derive recommended δ from F (if any)
     """
-    from constitutional_os.evals.runner   import EvalRunner
-    from constitutional_os.forecast.engine import ForecastEngine
 
     R = state.reliability
     eval_summaries = []
-    drift_alerts   = []
+    drift_alerts = []
 
     # Step 1: Run evals for all profiles
     for profile in R.profiles.all():
         for eval_spec in profile.evals:
             report = eval_runner.run(eval_spec.bundle_id, state, profile.id)
             R.eval_history.append(report)
-            eval_summaries.append(f"{profile.id}/{eval_spec.bundle_id}: {report.summary}")
+            eval_summaries.append(
+                f"{profile.id}/{eval_spec.bundle_id}: {report.summary}"
+            )
             if not report.passed:
                 drift_alerts.append(f"FAIL {profile.id}/{eval_spec.bundle_id}")
 
@@ -65,33 +72,33 @@ def epistemic_step(
     recommendation = None
     if new_forecasts.recommendations:
         critical = [r for r in new_forecasts.recommendations if r.urgency == "critical"]
-        high     = [r for r in new_forecasts.recommendations if r.urgency == "high"]
+        high = [r for r in new_forecasts.recommendations if r.urgency == "high"]
         candidates = critical or high
         if candidates:
             best = max(candidates, key=lambda r: r.confidence)
             recommendation = ActionRecommended(
-                action_id   = best.recommendation_id,
-                delta_type  = best.action_type,
-                payload     = {"metric": best.metric, "profile_id": best.profile_id},
-                rationale   = best.rationale,
-                urgency     = best.urgency,
-                confidence  = best.confidence,
-                profile_id  = best.profile_id,
-                forecast_id = best.recommendation_id,
+                action_id=best.recommendation_id,
+                delta_type=best.action_type,
+                payload={"metric": best.metric, "profile_id": best.profile_id},
+                rationale=best.rationale,
+                urgency=best.urgency,
+                confidence=best.confidence,
+                profile_id=best.profile_id,
+                forecast_id=best.recommendation_id,
             )
 
     # Build updated Σ_R
     new_R = ReliabilityState(
-        profiles     = R.profiles,
-        eval_history = R.eval_history,
-        forecasts    = new_forecasts,
+        profiles=R.profiles,
+        eval_history=R.eval_history,
+        forecasts=new_forecasts,
     )
 
     return EpistemicResult(
-        new_reliability = new_R,
-        recommendation  = recommendation,
-        eval_summaries  = eval_summaries,
-        drift_alerts    = drift_alerts,
+        new_reliability=new_R,
+        recommendation=recommendation,
+        eval_summaries=eval_summaries,
+        drift_alerts=drift_alerts,
     )
 
 
@@ -99,17 +106,18 @@ def epistemic_step(
 @dataclass
 class GovernanceResult:
     """Output of G(Σ, δ): updated Σ_C and verdict."""
+
     new_constitutional: ConstitutionalState
-    verdict:            str   # admitted | blocked | deferred | no_delta
-    proposal_id:        str   = ""
-    blockers:           list  = None
-    deferrals:          list  = None
+    verdict: str  # admitted | blocked | deferred | no_delta
+    proposal_id: str = ""
+    blockers: list = None
+    deferrals: list = None
 
 
 def governance_step(
-    state:       MetaState,
-    dispatcher:  "EventDispatcher",
-    delta:       Optional[ActionRecommended],
+    state: MetaState,
+    dispatcher: "EventDispatcher",
+    delta: Optional[ActionRecommended],
 ) -> GovernanceResult:
     """
     G(Σ, δ) = Σ_C'
@@ -122,77 +130,88 @@ def governance_step(
       4. If blocked: log rejection
       5. If deferred: open human veto window
     """
-    from constitutional_os.membranes.engine import ProposedDelta, MembraneVerdict
-    from constitutional_os.actions.deltas   import ContinuityLog, LogEntry
     import uuid
+
+    from constitutional_os.actions.deltas import LogEntry
+    from constitutional_os.membranes.engine import MembraneVerdict, ProposedDelta
 
     C = state.constitutional
 
     if delta is None:
         return GovernanceResult(
-            new_constitutional = C,
-            verdict            = "no_delta",
+            new_constitutional=C,
+            verdict="no_delta",
         )
 
     # Step 1: Invariant check
     inv_result = state.invariants.check_all(state)
     if not inv_result:
         return GovernanceResult(
-            new_constitutional = C,
-            verdict            = "blocked",
-            blockers           = [f"invariant:{r.invariant_id}" for r in inv_result.failures()],
+            new_constitutional=C,
+            verdict="blocked",
+            blockers=[f"invariant:{r.invariant_id}" for r in inv_result.failures()],
         )
 
     # Step 2: Membrane check
     proposed = ProposedDelta(
-        delta_type = delta.delta_type,
-        payload    = delta.payload,
-        autonomy   = "autonomous",
-        severity   = "significant" if delta.urgency in ("high","critical") else "normal",
-        reversible = True,
-        scope      = "local",
-        requester  = "reliability_os",
+        delta_type=delta.delta_type,
+        payload=delta.payload,
+        autonomy="autonomous",
+        severity="significant" if delta.urgency in ("high", "critical") else "normal",
+        reversible=True,
+        scope="local",
+        requester="reliability_os",
     )
     mem_result = state.membranes.check_all(state, proposed)
 
     if mem_result.verdict == MembraneVerdict.BLOCK:
         return GovernanceResult(
-            new_constitutional = C,
-            verdict            = "blocked",
-            blockers           = mem_result.blockers,
+            new_constitutional=C,
+            verdict="blocked",
+            blockers=mem_result.blockers,
         )
 
     if mem_result.verdict == MembraneVerdict.DEFER:
         # Log the deferral — human must act
         proposal_id = str(uuid.uuid4())[:8]
         entry = LogEntry(
-            seq=0, delta_id=delta.action_id, delta_type=delta.delta_type,
-            fingerprint="", state_version=state.version,
-            proposal_id=proposal_id, status="deferred_for_human",
-            author="reliability_os", rationale=delta.rationale,
+            seq=0,
+            delta_id=delta.action_id,
+            delta_type=delta.delta_type,
+            fingerprint="",
+            state_version=state.version,
+            proposal_id=proposal_id,
+            status="deferred_for_human",
+            author="reliability_os",
+            rationale=delta.rationale,
         )
         C.actions_log.append(entry)
         return GovernanceResult(
-            new_constitutional = C,
-            verdict            = "deferred",
-            proposal_id        = proposal_id,
-            deferrals          = mem_result.deferrals,
+            new_constitutional=C,
+            verdict="deferred",
+            proposal_id=proposal_id,
+            deferrals=mem_result.deferrals,
         )
 
     # Step 3: Ratify and log to L
     proposal_id = str(uuid.uuid4())[:8]
     entry = LogEntry(
-        seq=0, delta_id=delta.action_id, delta_type=delta.delta_type,
-        fingerprint=delta.action_id, state_version=state.version,
-        proposal_id=proposal_id, status="ratified_and_executed",
-        author="reliability_os", rationale=delta.rationale,
+        seq=0,
+        delta_id=delta.action_id,
+        delta_type=delta.delta_type,
+        fingerprint=delta.action_id,
+        state_version=state.version,
+        proposal_id=proposal_id,
+        status="ratified_and_executed",
+        author="reliability_os",
+        rationale=delta.rationale,
     )
     C.actions_log.append(entry)
 
     return GovernanceResult(
-        new_constitutional = C,
-        verdict            = "admitted",
-        proposal_id        = proposal_id,
+        new_constitutional=C,
+        verdict="admitted",
+        proposal_id=proposal_id,
     )
 
 
@@ -203,18 +222,19 @@ class PhiResult:
     Output of Φ(Σ) = G(E(Σ)).
     The complete epistemic-governance cycle.
     """
-    new_state:          MetaState
-    epistemic_result:   EpistemicResult
-    governance_result:  GovernanceResult
-    is_fixed_point:     bool  = False   # True if Φ(Σ) ≈ Σ (attractor reached)
+
+    new_state: MetaState
+    epistemic_result: EpistemicResult
+    governance_result: GovernanceResult
+    is_fixed_point: bool = False  # True if Φ(Σ) ≈ Σ (attractor reached)
 
 
 def phi(
-    state:        MetaState,
-    eval_runner:  "EvalRunner",
+    state: MetaState,
+    eval_runner: "EvalRunner",
     forecast_eng: "ForecastEngine",
-    dispatcher:   "EventDispatcher",
-    history_map:  dict,
+    dispatcher: "EventDispatcher",
+    history_map: dict,
 ) -> PhiResult:
     """
     Φ(Σ) = G(E(Σ))
@@ -237,42 +257,43 @@ def phi(
     state = state.with_constitutional(g_result.new_constitutional)
 
     # Fixed-point check: no delta recommended, or all blocked/deferred
-    is_fp = (
-        e_result.recommendation is None
-        or g_result.verdict in ("blocked", "deferred", "no_delta")
+    is_fp = e_result.recommendation is None or g_result.verdict in (
+        "blocked",
+        "deferred",
+        "no_delta",
     )
 
     return PhiResult(
-        new_state         = state,
-        epistemic_result  = e_result,
-        governance_result = g_result,
-        is_fixed_point    = is_fp,
+        new_state=state,
+        epistemic_result=e_result,
+        governance_result=g_result,
+        is_fixed_point=is_fp,
     )
 
 
 # ── Phi with Lyapunov tracking ────────────────────────────────────────────────
 def phi_with_stability(
-    state:        "MetaState",
-    eval_runner:  "EvalRunner",
+    state: "MetaState",
+    eval_runner: "EvalRunner",
     forecast_eng: "ForecastEngine",
-    dispatcher:   "EventDispatcher",
-    history_map:  dict,
-    v_history:    list = None,
+    dispatcher: "EventDispatcher",
+    history_map: dict,
+    v_history: list = None,
 ) -> tuple["PhiResult", "StabilityReport"]:
     """
     Run Φ and compute the full stability report.
     Returns (PhiResult, StabilityReport).
     """
-    from constitutional_os.runtime.theory import stability_report, lyapunov
+    from constitutional_os.runtime.theory import lyapunov, stability_report
 
     v_before = lyapunov(state)
-    result   = phi(state, eval_runner, forecast_eng, dispatcher, history_map)
+    result = phi(state, eval_runner, forecast_eng, dispatcher, history_map)
 
     v_hist = (v_history or []) + [v_before.total]
     report = stability_report(
         result.new_state,
-        v_history       = v_hist,
-        recommendations = list(result.new_state.forecasts.recommendations),
+        v_history=v_hist,
+        recommendations=list(result.new_state.forecasts.recommendations),
     )
 
     return result, report

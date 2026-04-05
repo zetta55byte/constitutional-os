@@ -10,6 +10,8 @@
 
 **A formal runtime for epistemic-governance systems.**
 
+[![CI](https://github.com/zetta55byte/constitutional-os/actions/workflows/ci.yml/badge.svg)](https://github.com/zetta55byte/constitutional-os/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/zetta55byte/constitutional-os/branch/main/graph/badge.svg)](https://codecov.io/gh/zetta55byte/constitutional-os)
 [![PyPI](https://img.shields.io/pypi/v/constitutional-os)](https://pypi.org/project/constitutional-os/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)

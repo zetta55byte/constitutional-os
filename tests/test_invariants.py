@@ -2,11 +2,13 @@
 tests/test_invariants.py
 Tests for invariants/engine.py: registration, checking, severity, library.
 """
-import pytest
 
 from constitutional_os.invariants.engine import (
-    Invariant, InvariantSet, InvariantResult,
-    InvariantSeverity, InvariantSetResult,
+    Invariant,
+    InvariantResult,
+    InvariantSet,
+    InvariantSetResult,
+    InvariantSeverity,
     load_default_invariants,
 )
 
@@ -14,42 +16,58 @@ from constitutional_os.invariants.engine import (
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _make_passing(inv_id="test.pass"):
     return Invariant(
-        id="test.pass", name="Always Pass",
+        id="test.pass",
+        name="Always Pass",
         description="Always returns true",
         fn=lambda state: InvariantResult(inv_id, True),
         severity=InvariantSeverity.ERROR,
     )
 
+
 def _make_failing(inv_id="test.fail", severity=InvariantSeverity.ERROR):
     return Invariant(
-        id=inv_id, name="Always Fail",
+        id=inv_id,
+        name="Always Fail",
         description="Always returns false",
         fn=lambda state: InvariantResult(inv_id, False, severity, "always fails"),
         severity=severity,
     )
 
+
 def _dummy_state():
     """Minimal state-like object for invariant checks."""
+
     class S:
         version = 1
-        status  = "running"
+        status = "running"
+
         class actions_log:
             _tampered = False
+
             @staticmethod
-            def recent_entries(n=20): return []
+            def recent_entries(n=20):
+                return []
+
         class eval_history:
             _tampered = False
+
         class invariants:
             @staticmethod
-            def check_all(s): return InvariantSetResult(all_passed=True)
+            def check_all(s):
+                return InvariantSetResult(all_passed=True)
+
         class profiles:
             @staticmethod
-            def all(): return []
+            def all():
+                return []
+
         class forecasts:
             recommendations = []
             curves = {}
+
         class membranes:
             pass
+
     return S()
 
 
@@ -67,16 +85,16 @@ class TestInvariantResult:
     def test_fields(self):
         r = InvariantResult("i1", False, InvariantSeverity.FATAL, "bad")
         assert r.invariant_id == "i1"
-        assert r.passed       == False
-        assert r.severity     == InvariantSeverity.FATAL
-        assert r.reason       == "bad"
+        assert r.passed is False
+        assert r.severity == InvariantSeverity.FATAL
+        assert r.reason == "bad"
 
 
 # ── InvariantSet ──────────────────────────────────────────────────────────────
 class TestInvariantSet:
 
     def test_register_and_get(self):
-        s   = InvariantSet()
+        s = InvariantSet()
         inv = _make_passing()
         s.register(inv)
         assert s.get("test.pass") is inv
@@ -118,12 +136,12 @@ class TestInvariantSet:
         assert result.warning_count == 1
 
     def test_disabled_invariant_skipped(self):
-        s   = InvariantSet()
+        s = InvariantSet()
         inv = _make_failing()
         inv.enabled = False
         s.register(inv)
         result = s.check_all(_dummy_state())
-        assert result.all_passed   # disabled, so not checked
+        assert result.all_passed  # disabled, so not checked
 
     def test_mixed_pass_fail(self):
         s = InvariantSet()
@@ -139,19 +157,25 @@ class TestInvariantSet:
         s = InvariantSet()
         s.register(_make_passing())
         s.register(_make_failing())
-        result  = s.check_all(_dummy_state())
+        result = s.check_all(_dummy_state())
         failures = result.failures()
         assert len(failures) == 1
-        assert failures[0].passed == False
+        assert failures[0].passed is False
 
     def test_exception_in_fn_becomes_fatal(self):
         def exploding(state):
             raise ValueError("boom")
+
         s = InvariantSet()
-        s.register(Invariant(
-            id="boom", name="Boom", description="explodes",
-            fn=exploding, severity=InvariantSeverity.ERROR,
-        ))
+        s.register(
+            Invariant(
+                id="boom",
+                name="Boom",
+                description="explodes",
+                fn=exploding,
+                severity=InvariantSeverity.ERROR,
+            )
+        )
         result = s.check_all(_dummy_state())
         assert not result.all_passed
 
@@ -168,7 +192,7 @@ class TestInvariantSet:
         assert "error" in result.summary().lower() or "fail" in result.summary().lower()
 
     def test_check_one(self):
-        s   = InvariantSet()
+        s = InvariantSet()
         inv = _make_passing()
         s.register(inv)
         r = s.check_one("test.pass", _dummy_state())
@@ -185,7 +209,7 @@ class TestDefaultInvariants:
 
     def setup_method(self):
         self.inv_set = load_default_invariants()
-        self.state   = _dummy_state()
+        self.state = _dummy_state()
 
     def test_loads_five_invariants(self):
         assert len(self.inv_set) == 5
@@ -197,30 +221,30 @@ class TestDefaultInvariants:
     def test_i1_version_monotonic(self):
         inv = self.inv_set.get("I1_version_monotonic")
         assert inv is not None
-        r   = inv.fn(self.state)
+        r = inv.fn(self.state)
         assert r.passed
 
     def test_i3_log_append_only(self):
         inv = self.inv_set.get("I3_log_append_only")
         assert inv is not None
-        r   = inv.fn(self.state)
+        r = inv.fn(self.state)
         assert r.passed
 
     def test_i3_detects_tamper(self):
         inv = self.inv_set.get("I3_log_append_only")
-        s   = _dummy_state()
+        s = _dummy_state()
         s.actions_log._tampered = True
-        r   = inv.fn(s)
+        r = inv.fn(s)
         assert not r.passed
 
     def test_i4_human_primacy_clean(self):
         inv = self.inv_set.get("I4_human_primacy")
         assert inv is not None
-        r   = inv.fn(self.state)
+        r = inv.fn(self.state)
         assert r.passed
 
     def test_i5_eval_integrity(self):
         inv = self.inv_set.get("I5_eval_integrity")
         assert inv is not None
-        r   = inv.fn(self.state)
+        r = inv.fn(self.state)
         assert r.passed

@@ -20,11 +20,11 @@ Commands:
 """
 
 from __future__ import annotations
-import sys
-import json
-from typing import Optional
 
-_store      = None
+import json
+import sys
+
+_store = None
 _dispatcher = None
 
 
@@ -38,7 +38,10 @@ def _rt():
 def cmd_boot(profiles_dir=None, strict=False, verbose=True):
     global _store, _dispatcher
     from constitutional_os.runtime.boot import boot
-    _store, _dispatcher = boot(profiles_dir=profiles_dir, strict=strict, verbose=verbose)
+
+    _store, _dispatcher = boot(
+        profiles_dir=profiles_dir, strict=strict, verbose=verbose
+    )
     print(json.dumps(_store.current.summary(), indent=2))
 
 
@@ -51,12 +54,18 @@ def cmd_profile_load(path: str):
     store, dispatcher = _rt()
     from constitutional_os.profiles.loader import ProfileLoader
     from constitutional_os.runtime.events import ProfileLoaded
+
     try:
         profile = ProfileLoader.from_file(path)
         store.current.profiles.register(profile)
-        state = dispatcher.dispatch(store.current, ProfileLoaded(
-            profile_id=profile.id, profile_name=profile.name, version=profile.version,
-        ))
+        state = dispatcher.dispatch(
+            store.current,
+            ProfileLoaded(
+                profile_id=profile.id,
+                profile_name=profile.name,
+                version=profile.version,
+            ),
+        )
         store.apply(state)
         print(f"Loaded: {profile.id} v{profile.version}")
         print(json.dumps(profile.to_dict(), indent=2))
@@ -68,13 +77,16 @@ def cmd_profile_list():
     store, _ = _rt()
     for p in store.current.profiles.all():
         metrics = len(p.metrics)
-        evals   = len(p.evals)
-        print(f"  {p.id:<30} v{p.version:<8} {metrics:2d} metrics  {evals:2d} evals  {p.name}")
+        evals = len(p.evals)
+        print(
+            f"  {p.id:<30} v{p.version:<8} {metrics:2d} metrics  {evals:2d} evals  {p.name}"
+        )
 
 
 def cmd_eval_run(bundle_id: str, profile_id: str = ""):
     store, _ = _rt()
     from constitutional_os.evals.runner import EvalRunner
+
     report = EvalRunner().run(bundle_id, store.current, profile_id)
     store.current.eval_history.append(report)
     print(json.dumps(report.to_dict(), indent=2))
@@ -87,16 +99,24 @@ def cmd_invariants():
     print(f"Invariants: {status} — {result.summary()}")
     for r in result.results:
         mark = "✓" if r.passed else "✗"
-        print(f"  {mark} [{r.severity.value:7s}] {r.invariant_id:<35} {r.reason or 'ok'}")
+        print(
+            f"  {mark} [{r.severity.value:7s}] {r.invariant_id:<35} {r.reason or 'ok'}"
+        )
 
 
-def cmd_membranes(delta_type: str = "test", severity: str = "normal",
-                  autonomy: str = "autonomous"):
+def cmd_membranes(
+    delta_type: str = "test", severity: str = "normal", autonomy: str = "autonomous"
+):
     store, _ = _rt()
     from constitutional_os.membranes.engine import ProposedDelta
+
     delta = ProposedDelta(
-        delta_type=delta_type, payload={},
-        autonomy=autonomy, severity=severity, reversible=True, scope="local",
+        delta_type=delta_type,
+        payload={},
+        autonomy=autonomy,
+        severity=severity,
+        reversible=True,
+        scope="local",
     )
     result = store.current.membranes.check_all(store.current, delta)
     print(f"Verdict: {result.verdict.value} — {result.summary()}")
@@ -106,13 +126,15 @@ def cmd_membranes(delta_type: str = "test", severity: str = "normal",
 
 def cmd_forecast(profile_id: str, metric: str = "response_quality"):
     store, _ = _rt()
+    import random
+
     from constitutional_os.forecast.engine import ForecastEngine
-    import random, math
+
     engine = ForecastEngine()
     # Simulate a degrading metric history
     history = [0.9 - i * 0.015 + random.gauss(0, 0.01) for i in range(14)]
-    curve   = engine.project(metric, profile_id, history)
-    rec     = engine.recommend(curve)
+    curve = engine.project(metric, profile_id, history)
+    rec = engine.recommend(curve)
 
     print(f"Profile:  {profile_id}")
     print(f"Metric:   {metric}")
@@ -120,8 +142,10 @@ def cmd_forecast(profile_id: str, metric: str = "response_quality"):
     print()
     for p in curve.points:
         bar = "█" * int(p.confidence * 16)
-        print(f"  Day {p.t:2d}: {p.value:6.3f}  [{p.lower:.3f}–{p.upper:.3f}]"
-              f"  {p.confidence:.0%}  {bar}")
+        print(
+            f"  Day {p.t:2d}: {p.value:6.3f}  [{p.lower:.3f}–{p.upper:.3f}]"
+            f"  {p.confidence:.0%}  {bar}"
+        )
     if rec:
         print(f"\nRecommendation: {rec.action_type}  urgency={rec.urgency}")
         print(f"  {rec.rationale}")
@@ -130,10 +154,11 @@ def cmd_forecast(profile_id: str, metric: str = "response_quality"):
 def cmd_recommend():
     """Run one Φ = G∘E cycle and show the result."""
     store, dispatcher = _rt()
-    from constitutional_os.runtime.operators import phi
-    from constitutional_os.evals.runner       import EvalRunner
-    from constitutional_os.forecast.engine    import ForecastEngine
     import random
+
+    from constitutional_os.evals.runner import EvalRunner
+    from constitutional_os.forecast.engine import ForecastEngine
+    from constitutional_os.runtime.operators import phi
 
     # Build synthetic history for demo
     history_map = {}
@@ -146,34 +171,36 @@ def cmd_recommend():
             ]
 
     result = phi(
-        state        = store.current,
-        eval_runner  = EvalRunner(),
-        forecast_eng = ForecastEngine(),
-        dispatcher   = dispatcher,
-        history_map  = history_map,
+        state=store.current,
+        eval_runner=EvalRunner(),
+        forecast_eng=ForecastEngine(),
+        dispatcher=dispatcher,
+        history_map=history_map,
     )
 
     store.apply(result.new_state)
 
     print(f"\n{'─'*50}")
-    print(f"Φ = G ∘ E  (one full cycle)")
+    print("Φ = G ∘ E  (one full cycle)")
     print(f"{'─'*50}")
     print(f"Fixed point reached: {result.is_fixed_point}")
     print()
 
     e = result.epistemic_result
-    print(f"E (Reliability OS):")
+    print("E (Reliability OS):")
     print(f"  Eval summaries:  {len(e.eval_summaries or [])} bundles run")
     print(f"  Drift alerts:    {len(e.drift_alerts or [])}")
     if e.recommendation:
-        print(f"  Recommendation:  {e.recommendation.delta_type}  urgency={e.recommendation.urgency}")
+        print(
+            f"  Recommendation:  {e.recommendation.delta_type}  urgency={e.recommendation.urgency}"
+        )
         print(f"    {e.recommendation.rationale[:80]}")
     else:
-        print(f"  Recommendation:  none")
+        print("  Recommendation:  none")
     print()
 
     g = result.governance_result
-    print(f"G (Constitutional OS):")
+    print("G (Constitutional OS):")
     print(f"  Verdict:         {g.verdict}")
     if g.proposal_id:
         print(f"  Proposal ID:     {g.proposal_id}")
@@ -190,9 +217,11 @@ def cmd_log(n: int = 20):
     entries = store.current.actions_log.recent_entries(n)
     print(f"Continuity log ({len(store.current.actions_log)} total):")
     for e in entries:
-        print(f"  [{e.get('seq',0):4d}] {e.get('ts','')[:19]}  "
-              f"{e.get('delta_type',''):25s}  {e.get('status',''):20s}  "
-              f"{e.get('rationale','')[:50]}")
+        print(
+            f"  [{e.get('seq',0):4d}] {e.get('ts','')[:19]}  "
+            f"{e.get('delta_type',''):25s}  {e.get('status',''):20s}  "
+            f"{e.get('rationale','')[:50]}"
+        )
 
 
 def cmd_events(n: int = 20):
@@ -206,9 +235,15 @@ def cmd_events(n: int = 20):
 def cmd_observe(metric: str, value: float, source: str = "external"):
     store, dispatcher = _rt()
     from constitutional_os.runtime.events import ObservationIngested
-    state = dispatcher.dispatch(store.current, ObservationIngested(
-        source=source, metric=metric, value=value,
-    ))
+
+    state = dispatcher.dispatch(
+        store.current,
+        ObservationIngested(
+            source=source,
+            metric=metric,
+            value=value,
+        ),
+    )
     store.apply(state)
     print(f"Observed: {source}/{metric} = {value}")
 
@@ -241,25 +276,31 @@ def main(argv=None):
         cmd_status()
     elif cmd == "profile":
         sub = args[1] if len(args) > 1 else ""
-        if sub == "load" and len(args) > 2:   cmd_profile_load(args[2])
-        elif sub == "list":                    cmd_profile_list()
-        else: print("profile load <path> | profile list")
+        if sub == "load" and len(args) > 2:
+            cmd_profile_load(args[2])
+        elif sub == "list":
+            cmd_profile_list()
+        else:
+            print("profile load <path> | profile list")
     elif cmd == "eval":
         sub = args[1] if len(args) > 1 else ""
         if sub == "run" and len(args) > 2:
             pid = args[4] if "--profile" in args and len(args) > 4 else ""
             cmd_eval_run(args[2], pid)
-        else: print("eval run <bundle_id> [--profile <id>]")
-    elif cmd == "invariants":  cmd_invariants()
+        else:
+            print("eval run <bundle_id> [--profile <id>]")
+    elif cmd == "invariants":
+        cmd_invariants()
     elif cmd == "membranes":
-        dt  = args[1] if len(args) > 1 else "test"
+        dt = args[1] if len(args) > 1 else "test"
         sev = args[2] if len(args) > 2 else "normal"
         cmd_membranes(dt, sev)
     elif cmd == "forecast":
         pid = args[1] if len(args) > 1 else "demo"
-        m   = args[2] if len(args) > 2 else "response_quality"
+        m = args[2] if len(args) > 2 else "response_quality"
         cmd_forecast(pid, m)
-    elif cmd == "recommend":   cmd_recommend()
+    elif cmd == "recommend":
+        cmd_recommend()
     elif cmd == "log":
         n = int(args[1]) if len(args) > 1 else 20
         cmd_log(n)
@@ -267,12 +308,12 @@ def main(argv=None):
         n = int(args[1]) if len(args) > 1 else 20
         cmd_events(n)
     elif cmd == "observe" and len(args) >= 3:
-        cmd_observe(args[1], float(args[2]),
-                    args[3] if len(args) > 3 else "external")
+        cmd_observe(args[1], float(args[2]), args[3] if len(args) > 3 else "external")
     elif cmd == "rollback":
         n = int(args[2]) if "--steps" in args and len(args) > 2 else 1
         cmd_rollback(n)
-    elif cmd == "history":     cmd_history()
+    elif cmd == "history":
+        cmd_history()
     else:
         print(f"Unknown: {cmd}")
         print(__doc__)
@@ -289,25 +330,28 @@ def cmd_stability(v_history=None):
     """Full stability analysis: V(S), basin, separatrix, A-safety theorem."""
     store, _ = _rt()
     from constitutional_os.runtime.theory import stability_report
+
     report = stability_report(store.current, v_history=v_history)
     print("\n" + "═" * 56)
     print("  Stability Report")
     print("═" * 56)
     print(report.summary)
     print()
-    print(f"V(S) decomposition:")
+    print("V(S) decomposition:")
     for k, v in report.lyapunov.components.items():
         bar = "█" * int(v * 30)
         print(f"  {k:<12} {v:.4f}  {bar}")
     print(f"  {'TOTAL':<12} {report.lyapunov.total:.4f}")
     print()
-    print(f"A-safety theorem:")
+    print("A-safety theorem:")
     print(f"  {report.a_safety.proof}")
     if report.a_safety.checks:
         for c in report.a_safety.checks:
             mark = "✓" if c.is_safe else "✗"
-            print(f"  {mark} {c.delta_type:<30} inv={'✓' if c.invariants_hold else '✗'}"
-                  f"  mem={'✓' if c.membranes_pass else '✗'}")
+            print(
+                f"  {mark} {c.delta_type:<30} inv={'✓' if c.invariants_hold else '✗'}"
+                f"  mem={'✓' if c.membranes_pass else '✗'}"
+            )
     print()
     print(f"V trajectory: {[round(v,3) for v in report.v_trajectory]}")
     print(f"Converging:   {'yes ↓' if report.converging else 'no ↑ — WARNING'}")

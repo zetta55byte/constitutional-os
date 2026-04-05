@@ -12,10 +12,10 @@ The StateStore holds the current Σ and the full history stack for rollback.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Optional
-import copy
 
 
 def _now() -> str:
@@ -31,14 +31,15 @@ class ReliabilityState:
       H = EvalHistory
       F = ForecastState
     """
-    profiles:     "ProfileRegistry"
+
+    profiles: "ProfileRegistry"
     eval_history: "EvalHistory"
-    forecasts:    "ForecastState"
+    forecasts: "ForecastState"
 
     def summary(self) -> dict:
         return {
-            "n_profiles":       len(self.profiles),
-            "n_evals":          len(self.eval_history),
+            "n_profiles": len(self.profiles),
+            "n_evals": len(self.eval_history),
             "n_forecast_curves": len(self.forecasts.curves),
             "n_recommendations": len(self.forecasts.recommendations),
         }
@@ -52,19 +53,20 @@ class ConstitutionalState:
       C = (rights R, obligations O, invariants I, membranes M)
       L = ContinuityLog (append-only ratified delta chain)
     """
-    invariants:   "InvariantSet"
-    membranes:    "MembraneSet"
-    actions_log:  "ContinuityLog"
-    rights:       dict  = field(default_factory=dict)      # R
-    obligations:  dict  = field(default_factory=dict)      # O
-    proposals:    dict  = field(default_factory=dict)      # active proposals
+
+    invariants: "InvariantSet"
+    membranes: "MembraneSet"
+    actions_log: "ContinuityLog"
+    rights: dict = field(default_factory=dict)  # R
+    obligations: dict = field(default_factory=dict)  # O
+    proposals: dict = field(default_factory=dict)  # active proposals
 
     def summary(self) -> dict:
         return {
-            "n_invariants":  len(self.invariants),
-            "n_membranes":   len(self.membranes),
+            "n_invariants": len(self.invariants),
+            "n_membranes": len(self.membranes),
             "n_log_entries": len(self.actions_log),
-            "n_proposals":   len(self.proposals),
+            "n_proposals": len(self.proposals),
         }
 
 
@@ -75,13 +77,14 @@ class RealityState:
     Σ_X = external observations from real systems.
     Fed in from outside; never modified by the OS itself.
     """
-    observations: list  = field(default_factory=list)
-    last_ingested: str  = field(default_factory=_now)
+
+    observations: list = field(default_factory=list)
+    last_ingested: str = field(default_factory=_now)
 
     def ingest(self, obs: dict) -> "RealityState":
         return RealityState(
-            observations  = self.observations + [obs],
-            last_ingested = _now(),
+            observations=self.observations + [obs],
+            last_ingested=_now(),
         )
 
 
@@ -94,14 +97,15 @@ class MetaState:
     The complete state of the epistemic-governance stack.
     Frozen so all transitions are explicit and traceable.
     """
-    reliability:    ReliabilityState
-    constitutional: ConstitutionalState
-    reality:        RealityState
 
-    version:   int  = 0
-    status:    str  = "booting"   # booting | running | paused | error
-    booted_at: str  = field(default_factory=_now)
-    last_tick: str  = field(default_factory=_now)
+    reliability: ReliabilityState
+    constitutional: ConstitutionalState
+    reality: RealityState
+
+    version: int = 0
+    status: str = "booting"  # booting | running | paused | error
+    booted_at: str = field(default_factory=_now)
+    last_tick: str = field(default_factory=_now)
 
     # ── Convenience accessors ─────────────────────────────────────────────────
     @property
@@ -146,10 +150,10 @@ class MetaState:
 
     def summary(self) -> dict:
         return {
-            "version":        self.version,
-            "status":         self.status,
-            "booted_at":      self.booted_at,
-            "last_tick":      self.last_tick,
+            "version": self.version,
+            "status": self.status,
+            "booted_at": self.booted_at,
+            "last_tick": self.last_tick,
             **{f"rel_{k}": v for k, v in self.reliability.summary().items()},
             **{f"con_{k}": v for k, v in self.constitutional.summary().items()},
         }
@@ -164,7 +168,7 @@ class StateStore:
     """
 
     def __init__(self, initial: MetaState):
-        self._current  = initial
+        self._current = initial
         self._history: list[MetaState] = [initial]
         self._listeners: list = []
 
@@ -186,8 +190,10 @@ class StateStore:
         self._history.append(self._current)
         self._current = new_state
         for fn in self._listeners:
-            try: fn(new_state)
-            except Exception: pass
+            try:
+                fn(new_state)
+            except Exception:
+                pass
         return new_state
 
     def rollback(self, steps: int = 1) -> MetaState:
