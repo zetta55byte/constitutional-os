@@ -17,6 +17,61 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 [![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.19075163.svg)](https://zenodo.org/records/19075163)
 
+
+## Quickstart (fully offline)
+
+```bash
+pip install constitutional-os
+python examples/offline_quickstart.py
+```
+
+```python
+from constitutional_os import (
+    Invariant, InvariantResult, InvariantSeverity, InvariantSet,
+    Membrane, MembraneResult, MembraneSet, MembraneVerdict, boot,
+)
+from constitutional_os.actions.deltas import Delta, DeltaType
+
+# Boot the runtime
+store, dispatcher = boot()
+
+# Define an invariant (always-true predicate on state)
+inv_set = InvariantSet()
+inv_set.register(Invariant(
+    id="no_medical_advice",
+    name="No Medical Advice",
+    description="Block medical advice requests.",
+    fn=lambda state: InvariantResult(
+        "no_medical_advice",
+        "medical" not in str(state).lower(),
+        InvariantSeverity.ERROR,
+        "Medical advice is not permitted.",
+    ),
+))
+
+# Define a membrane (directional filter on proposed changes)
+mem_set = MembraneSet()
+mem_set.register(Membrane(
+    id="safety",
+    name="Safety Membrane",
+    description="Block dangerous deltas.",
+    fn=lambda state, delta: MembraneResult(
+        "safety",
+        MembraneVerdict.BLOCK if "dangerous" in str(delta.payload).lower()
+        else MembraneVerdict.PASS,
+        "Unsafe content blocked.",
+    ),
+))
+
+# Propose a change and check it
+delta = Delta(delta_type=DeltaType.UPDATE_CONFIG.value,
+              payload={"content": "dangerous action"})
+membrane_result = mem_set.check_all(store.current, delta)
+print(membrane_result.verdict)  # MembraneVerdict.BLOCK
+```
+
+See [`examples/offline_quickstart.py`](examples/offline_quickstart.py) for the full demo with 4 scenarios.
+
 ## Start Here
 
 | | |
