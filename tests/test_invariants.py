@@ -16,7 +16,7 @@ from constitutional_os.invariants.engine import (
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _make_passing(inv_id="test.pass"):
     return Invariant(
-        id="test.pass",
+        id=inv_id,
         name="Always Pass",
         description="Always returns true",
         fn=lambda state: InvariantResult(inv_id, True),

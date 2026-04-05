@@ -62,7 +62,9 @@ def _make_state(with_profile=False):
             membranes=load_default_membranes(),
             actions_log=ContinuityLog(),
         ),
-        reality=__import__("runtime.state", fromlist=["RealityState"]).RealityState(),
+        reality=__import__(
+            "constitutional_os.runtime.state", fromlist=["RealityState"]
+        ).RealityState(),
         status="running",
     )
 
